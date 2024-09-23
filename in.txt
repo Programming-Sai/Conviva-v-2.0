@@ -1,0 +1,129 @@
+Internship Report
+Intern: Mensah Lartey Isaiah Nii Larte
+University: University Of Ghana
+Program: Single Major Computer Science
+Internship Period: September 2nd, 2024 – October 3rd, 2024
+Company: Tech Coach Ltd, Accra, Ghana
+Supervisor: [Supervisor's Name]
+
+Table of Contents
+
+Introduction
+Company Overview
+Roles and Responsibilities
+Activities Undertaken
+Network Maintenance and Speed Testing
+Camera Installation
+Technical Skills Acquired
+Server Rack Maintenance
+Checking Network Speed
+Camera System Installation and Configuration
+Challenges Faced
+Conclusion
+Recommendations
+Appendices
+A. Network Speed Test Results (Optional)
+B. Camera Installation Photos (Optional)
+Technical Appendix (Optional)
+
+
+
+1. Introduction
+
+This report details my experience as an intern at Tech Coach Ltd, a Ghanaian technology company specializing in security solutions and network services. During my four-week internship, I participated in various activities related to network maintenance, camera installation, and learning about essential network components. My primary goal was to gain practical experience in the field of network infrastructure and security systems.
+
+2. Company Overview
+
+Tech Coach Ltd is a technology-driven company offering intelligent security solutions and network services in Ghana. Their services include:
+
+Security Systems: Installation and maintenance of CCTV cameras and other surveillance equipment.
+Network Services: Installation and maintenance of network equipment like servers, routers, and switches.
+IoT Solutions: Smart automation systems for homes and businesses.
+This internship provided valuable insight into the practical application of these technologies in real-world scenarios.
+
+3. Roles and Responsibilities
+
+During the first few days of my internship, I was assigned tasks focused on:
+
+Maintaining network hardware in the server rack.
+Testing network speed using appropriate tools.
+Assisting with camera installation projects.
+As the internship progressed, I was given more opportunities to contribute and learn new skills.
+
+4. Activities Undertaken
+
+4.1 Network Maintenance and Speed Testing
+
+Server Rack Maintenance: I worked alongside the team to ensure the server rack, which houses important network devices, was organized and functioning smoothly. This involved learning proper cable management techniques and understanding the roles of various hardware components like patch panels, routers, and switches.
+Checking Network Speed: We utilized online tools like Speedtest.net to assess the network speed and confirm efficient data transmission and server connectivity. This experience helped me understand how factors like network congestion can impact overall performance.
+4.2 Camera Installation
+
+I actively participated in installing CCTV cameras for security and monitoring purposes. This included:
+Mounting the cameras securely and strategically for optimal coverage.
+Connecting the cameras to the central monitoring system for live viewing.
+Through this process, I gained practical skills in camera positioning, cable management, and ensuring proper power supply during installation.
+
+5. Technical Skills Acquired
+
+5.1 Server Rack Maintenance
+
+I gained valuable experience in maintaining a server rack by ensuring organized cabling and proper airflow for cooling.
+I developed a basic understanding of the different hardware components within the server rack, including their functions.
+5.2 Checking Network Speed
+
+I learned how to check network speed using online tools like Speedtest.net.
+I gained insight into how network congestion and other factors can affect network performance.
+5.3 Camera System Installation and Configuration
+
+I acquired practical skills in installing CCTV cameras, including positioning and configuring them for the monitoring system.
+I learned the importance of proper cable management and power supply during camera installation.
+6. Challenges Faced
+
+Initial Challenges:
+
+During the initial stages of the internship, I encountered some challenges, including:
+
+Network Testing Tools: I initially struggled to grasp the functionalities of various network testing tools. However, with guidance from my team, I was able to perform basic speed tests.
+Camera Positioning: While positioning cameras during installation, I initially faced difficulties achieving the optimal angles and coverage. Regular practice significantly improved my efficiency.
+Overcoming Challenges:
+
+With perseverance and support from my supervisor and colleagues, I was able to overcome these initial challenges and develop a deeper understanding of the tasks involved.
+
+7. Conclusion
+
+During my internship at Tech Coach Ltd, I gained valuable hands-on experience in network maintenance, camera installation, and a basic understanding of network infrastructure. I learned to use network testing tools, perform basic server rack maintenance tasks, and participate in CCTV camera installations. This experience has significantly broadened my technical knowledge and understanding of the practical application of security and network technologies.
+
+Looking forward, I am eager to continue building upon these skills and expand my knowledge in the
+
+
+8. Technical Appendix
+
+Tools and Devices
+
+Crimping Tool: Used to connect RJ-45 connectors to Ethernet cables.
+Punch Down Tool (Krone Tool): Employed to connect network wires to patch panels.
+Wire Tracer: Utilized to identify specific network cables.
+Wire Stripper: Used to remove insulation from network and electrical cables.
+Cable Tester: Ensured the continuity of LAN cables and detected any short circuits or incorrect connections.
+Network Tester: A device used to measure network performance and identify potential issues.
+Server Rack: A cabinet used to house network equipment like servers, routers, and switches.
+Patch Panel: A device used to organize and manage network cables.
+Switch: A networking device that connects multiple computers and devices within a local area network (LAN).
+Router: A networking device that directs data traffic between different networks.
+CCTV Camera: A video surveillance system used to monitor activities in a specific area.
+NVR (Network Video Recorder): A device used to record and store video footage from IP cameras.
+DVR (Digital Video Recorder): A device used to record and store video footage from analog cameras.
+Terminologies
+
+LAN (Local Area Network): A network that connects devices within a limited area, such as an office or home.
+WAN (Wide Area Network): A network that connects devices across a large geographical area, such as a country or continent.
+IP Address: A unique numerical label assigned to each device connected to a network.
+Subnet Mask: A mask used to determine the network and host portions of an IP address.
+Gateway: A device that connects a local network to a wider network, such as the internet.
+DNS (Domain Name System): A system that translates domain names into IP addresses.
+PoE (Power over Ethernet): A technology that allows Ethernet cables to transmit both data and power to devices.
+RJ-45 Connector: A standard connector used for Ethernet cables.
+Ethernet Cable: A cable used to connect devices to a network.
+Bandwidth: The amount of data that can be transmitted over a network connection.
+Latency: The delay in time it takes for data to travel from one point to another on a network.
+

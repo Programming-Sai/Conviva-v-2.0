@@ -1,11 +1,55 @@
 
-1. **Open Terminal**: A function that allows me to open a terminal or command prompt on your device.
-2. **Open Website**: A function that enables me to open a specific website, such as YouTube, in a web browser.
-3. **File Search**: A function that allows me to search for files on your device and provide the file path or contents.
-4. **Run System Commands**: A function that enables me to run system commands, such as shutting down or restarting your device.
 5. **Control Media**: A function that allows me to control media playback, such as playing, pausing, or skipping videos on YouTube.
-6. **System Information**: A function that provides me with system information, such as device specifications, available storage, or system updates.
-7. **Screenshot**: A function that enables me to take a screenshot of your device's screen and provide it to you.
-8. **App Management**: A function that allows me to install, update, or uninstall applications on your device.
-9. **Text to Speech**: A function that enables me to read out text aloud, using a speech synthesizer.
+
+
 10. **System Automation**: A function that allows me to automate system tasks, such as setting reminders, sending notifications, or scheduling tasks.
+
+
+Other Functionalities:
+
+1. Weather Updates:
+• Provide current weather conditions and forecasts (e.g., "What's the weather like today?")
+
+
+6. Integration with Services:
+
+Fetch and display news headlines (e.g.. "What's the latest news?")
+
+
+
+• Control media playback (e.g., "Pause the music.")
+2. Schedule Management:
+• Create, modify, or delete calendar events (e.g., "Add a meeting on Friday at 2 PM.")
+Set reminders and to-do lists (e.g., 'Remind me to buy groceries tomorrow."
+
+
+
+add a section / folder called 'Conversations' here you would dtore each conversation in a json file separately, kinda how chatgpt does it.
+
+
+
+
+
+
+
+prompt so that the time is formatted in the GMT format and said as such.
+
+add a back and forth between you and the system to the init json file for the model so that it knows how to handle functions so that doesn't waste time.
+
+add a loading animation for when the response is being processed.
+
+   -- Chat
+-c -- Chat
+-h -- Help
+--help -- Help
+-T -- Text Conversation
+-S -- Speech Conversation
+-y -- Youtube work.
+-v -- version
+--version -- version
+-g -- open GUI
+--gui -- open GUI
+
+
+
+ 

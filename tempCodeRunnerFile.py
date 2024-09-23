@@ -1,1 +1,1 @@
- Hello. can you tell me the current time in ghana? After that Greet me Since My name is John Ken. Now Tell me the result of this expression (900/3-300/10000). then tell me what is in the image i will give you based on the url/path : https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgsNffTLsiZ7L-8kk8Dy8QppedW9zjI9tkkaWIq04rOkhL7OYKV-pOvBtuVMIepqDA64o&usqp=CAU. After Everything Tell me what you know about the BMW. Also, Can you please analyse this song for me? this is the audio file /audio.mp3. Can you do this for me?
+%dth
