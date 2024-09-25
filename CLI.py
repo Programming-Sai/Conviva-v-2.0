@@ -10,6 +10,7 @@ import termios
 import select
 import json
 from utility_functions import *
+from Youtube_Downloader import YoutubeDownloader
 
 
 
@@ -77,6 +78,10 @@ class CLI(ag.ArgumentParser):
 
         self.add_argument('-l', '--lock-screen', action='store_true', help='locks the screen')
 
+        self.add_argument("-yda", action='store_true', help='Downloads audio from youtube')
+        self.add_argument("-ydv", action='store_true', help='Downloads video from youtube')
+        self.add_argument('--speed', type=float, default=1.0, help="The speed of the audio to downlaod.")  # Optional link argument
+
     def process_args(self):
         try:
             args = self.parse_args()
@@ -119,6 +124,16 @@ class CLI(ag.ArgumentParser):
                 mute_volume()
             elif args.lock_screen:
                 lock_screen()
+            elif args.yda:
+                if args.link or args.speed:
+                    YoutubeDownloader(False, lambda: "").download_audio(args.link, speed=args.speed)
+                else:
+                    print("Error: No link provided for download.")
+            elif args.ydv:
+                if args.link:
+                    YoutubeDownloader(False, lambda: "").download_video(args.link)
+                else:
+                    print("Error: No link provided for download.")
             else:
                 self.start_conversation(False, True)
 

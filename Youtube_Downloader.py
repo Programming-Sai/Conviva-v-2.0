@@ -369,22 +369,7 @@ class YoutubeDownloader:
 
 
 
-c = YoutubeDownloader(False, say)
-
-# c.mini_youtube()
-
-# c.download_video("https://www.youtube.com/watch?v=i3EJ9LrUN1k")
-
-# c.download_audio("https://www.youtube.com/watch?v=ubUBLhAYBEA")
-
-# c.download_audio("https://www.youtube.com/watch?v=0g0i23A0EXE")
-
-c.download_video("https://www.youtube.com/watch?v=pzEIZvx7Roo")
-
-# c.download_audio("https://www.youtube.com/watch?v=ZjgNWHelwYQ")
-# c.cli_progress_animation(math.ceil(c.total_size))
-
-# c.download_audio("https://www.youtube.com/shorts/k8vX5R9cKoI?feature=share")
+# c = YoutubeDownloader(False, say)
 
 
 
