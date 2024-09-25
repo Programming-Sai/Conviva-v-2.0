@@ -148,6 +148,15 @@ class CLI(ag.ArgumentParser):
             user_prompt = self.get_user_input(speech, text)[0]
             if user_prompt.lower() in ['x', 'exit']:
                 break
+            elif user_prompt.lower() == 'c':
+                a.conversation.move_file = True
+                print(a.conversation.move_file)
+                a.conversation.create_new_conversation()
+                print("New Conversation Should Start here!!!")
+                a.conversation.move_file = False
+                print(a.conversation.move_file)
+                continue
+
             elif user_prompt == "":
                 print("--------")
                 continue
