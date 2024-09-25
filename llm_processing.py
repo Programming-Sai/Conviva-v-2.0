@@ -8,7 +8,7 @@ from speechInput import get_speech
 from dotenv import load_dotenv
 from utility_functions import *
 from cli_colors import AsciiColors
-from conversations_test import Conversation
+from conversations import Conversation
 
 
 
