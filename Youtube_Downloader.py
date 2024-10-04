@@ -245,8 +245,7 @@ class YoutubeDownloader:
         except:
             return []
 
-    # def download_video(self, link: str = None, progress_hook: callable = None) -> str:
-    def download_video(self, link) -> str:
+    def download_video(self, link, file_type=None) -> str:
         """
         Download a YouTube video.
 
@@ -260,21 +259,21 @@ class YoutubeDownloader:
         # try:
         ydl_opts = {
             'quiet': True,
-            'progress_hooks': [self.progress_hook],
+            'progress_hooks': [lambda d: self.progress_hook(d, 'video')],
             'format': 'bestvideo+bestaudio/best',  
             # '--no-check-certificates': True, # Uncomment this when the SSL error arises
             'ssl_context': ssl._create_unverified_context(),
-            'outtmpl': os.path.join('Downloads', '%(title)s.%(ext)s'),  # Save to a 'downloads' folder
+            'outtmpl': os.path.join('Downloads', f'%(title)s.{file_type}' if file_type else '%(title)s.%(ext)s'),  # Save to a 'downloads' folder
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.link if link is None else link])
-        logging.info(f"{os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Downloads')}  {'%(title)s.%(ext)s'} Successfully ---Video")
+        logging.info(f"{os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Downloads')}  {'%(title)s'} Successfully ---Video")
         return 'Success'
         # except:
         #     logging.info(f"Failed to Download {'%(title)s.%(ext)s'} ---Video")
         #     return "Sorry, There is no internet connection"
 
-    # def download_audio(self, link: str = None, progress_hook: callable = None) -> str:
+
     
     def download_audio(self, link, speed = 1.25) -> str:
         """
@@ -290,7 +289,7 @@ class YoutubeDownloader:
         try:
             ydl_opts = {
                 'quiet': True,
-                'progress_hooks': [self.progress_hook],
+                'progress_hooks': [lambda d: self.progress_hook(d, 'audio')],
                 # '--no-check-certificates': True, # Uncomment this when the SSL error arises
                 'ssl_context': ssl._create_unverified_context(),
                 'format': 'bestaudio/best',
@@ -319,26 +318,23 @@ class YoutubeDownloader:
             return "Sorry, There is no internet connection"
 
 
-    def cli_progress_animation(self, progress, total, bar_length=50, final=False):
+    def cli_progress_animation(self, progress, total, type, bar_length=50, final=False, title=''):
         """Displays a download-like progress bar."""
         # Calculate the filled portion of the bar
         filled_length = int(bar_length * progress // 100)
         colors = AsciiColors()
 
-        # Create the bar: green for the completed part, grey for the remaining part
-        bar = colors.color("━", colors.BLUE) * filled_length + colors.color("━", colors.DIM) * (bar_length - filled_length)
-
         # Display progress with download info
         if final:
             # Print final bar without overwriting
-            print(f"\r{bar} {round((progress/100) * total, 1)}/{round(total, 1)} MB - Download Complete")
+            print(f"\r{colors.color("━", colors.GREEN) * filled_length + colors.color("━", colors.DIM) * (bar_length - filled_length)} {round((progress/100) * total, 1)}/{round(total, 1)} MB - {colors.color(title, AsciiColors.ITALIC)} Downloaded Successfully")
         else:
-            sys.stdout.write(f"\r{bar} {round((progress/100) * total, 1)}/{round(total, 1)} MB")
+            sys.stdout.write(f"\r{colors.color("━", colors.RED if type == 'video' else colors.YELLOW) * filled_length + colors.color("━", colors.DIM) * (bar_length - filled_length)} {round((progress/100) * total, 1)}/{round(total, 1)} MB")
             sys.stdout.flush()
 
         
 
-    def progress_hook(self, d: dict) -> None:
+    def progress_hook(self, d: dict, type: str) -> None:
             """
             A callback function to update the download progress.
 
@@ -351,15 +347,18 @@ class YoutubeDownloader:
                     speed_str = re.sub(r'\x1b\[[0-9;]*m', '', d['_speed_str'])
                     elapsed_str = re.sub(r'\x1b\[[0-9;]*m', '', d['_elapsed_str'])
                     total_size_str = re.sub(r'\x1b\[[0-9;]*m', '', d['_total_bytes_str'])
+
                     if percent_str.strip().endswith('%'):
                         self.progress = (float(float(percent_str.replace('%', ''))))
                         self.total_size = (float(float(total_size_str.strip().replace('MiB', '')))) * 1.048576
                         self.time_elapsed = elapsed_str
                         self.download_speed = speed_str
-                        self.cli_progress_animation(self.progress, self.total_size)
+                        self.cli_progress_animation(self.progress, self.total_size, type)
                 elif d['status'] == 'finished':
                     # Print the final bar when the download is complete
-                    self.cli_progress_animation(100, self.total_size, final=True)
+                    title = d['info_dict']['title']
+                    print(title)
+                    self.cli_progress_animation(100, self.total_size, type, final=True, title=title)
             except:
                 raise ValueError
 

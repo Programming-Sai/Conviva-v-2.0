@@ -31,7 +31,8 @@ def tell_time(date=False, time=False):
     ctime = current_date_time.strftime("%I:%M %p")
     ctime = str(int(ctime[:2])) + ctime[2:]
     day = current_date_time.day
-    cdate = current_date_time.strftime(f"%d{get_day_suffix(day)} of %B %Y")
+    cdate = f"{day}{get_day_suffix(day)} of {current_date_time.strftime('%B %Y')}"
+
     if date and time:
         return cdate + ", " + ctime
     elif time:
@@ -41,16 +42,10 @@ def tell_time(date=False, time=False):
 
 
 def get_day_suffix(day):
-    if 11 <= day <= 13:
+    """Get the appropriate suffix for the day of the month."""
+    if 11 <= day % 100 <= 13:
         return 'th'
-    elif day % 10 == 1:
-        return 'st'
-    elif day % 10 == 2:
-        return 'nd'
-    elif day % 10 == 3:
-        return 'rd'
-    else:
-        return 'th'
+    return {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
 
 
 def open_website(link):
@@ -92,10 +87,10 @@ def get_system_info():
     return json.dumps(info)
 
 
-def take_screenshot():
+def take_screenshot(file_path='screenshot'):
     screenshot = ImageGrab.grab()
-    screenshot.save('screenshot.png')
-    return "Screenshot taken and saved as 'screenshot.png'"
+    screenshot.save(f'{file_path}.png')
+    return f"Screenshot taken and saved as '{file_path}.png'"
 
 
 def get_volume():
@@ -201,7 +196,16 @@ all_tools = [
         "function": {
             "name": "take_screenshot",
             "description": "Take a screenshot of the current screen and save it.",
-            "parameters": {}
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "This is the name of the file to save it. if none is mentioned, it defaults to 'screenshot'"
+                    }
+                },
+                "required": ["file_path"],
+            }
         }
     },
     {

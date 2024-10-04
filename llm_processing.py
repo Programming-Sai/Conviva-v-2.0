@@ -2,13 +2,16 @@ from groq import Groq, APIConnectionError
 import os
 import base64
 import re
-from speechOutput import say
-from speechInput import get_speech
-# from type_printing import print_response
 from dotenv import load_dotenv
 from utility_functions import *
 from cli_colors import AsciiColors
 from conversations import Conversation
+
+import platform
+import subprocess
+import speech_recognition as STT
+
+
 
 
 
@@ -34,8 +37,6 @@ class AI_Utilties:
             "distil-whisper-large-v3-en"
         ]
         self.conversation = Conversation()
-
-   
 
     def get_text_prompt(self):
         return input(m.color("\nYou: ", m.GREEN))
@@ -77,7 +78,13 @@ class AI_Utilties:
 
 
 
+'''
+Set up the STT for the cli so it looks nice and easy to use.  and also set up an interrupt mechanism so that speech can be cut when not needed.
 
+Set up subparsers for the cli, so that there would be a more sturctured system of command line tools.
+
+
+'''
 
 
 
@@ -88,22 +95,36 @@ a = AI_Utilties()
 def ai_sound_analysis_external(prompt, sound):
 
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-    filename = os.path.dirname(__file__) + sound 
+    # filename = os.path.dirname(__file__) + sound 
+    filename = sound
 
     # Open the audio file
     with open(filename, "rb") as file:
-        # Create a transcription of the audio file
-        transcription = client.audio.transcriptions.create(
-        file=(filename, file.read()), # Required audio file
-        model=a.models[5], # Required model to use for transcription
-        prompt=prompt,  # Optional
-        response_format="json",  # Optional
-        language="en",  # Optional
-        temperature=0.0  # Optional
-        )
-        # Print the transcription text
-        # print(transcription.text)
-        return(transcription.text)
+        try:
+            transcription = client.audio.transcriptions.create(
+                file=(filename, file.read()), # Required audio file
+                model=a.models[5], # Required model to use for transcription
+                response_format="json",  # Optional
+                language="en",  # Optional
+                temperature=0.0  # Optional
+            )
+        
+
+            completion = client.chat.completions.create(
+            model=a.models[3],
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{prompt}"}
+            ],
+                temperature=1,
+                max_tokens=1024,
+                top_p=1,
+            )
+            response = completion.choices[0].message.content
+            return response
+        except:
+            return ""
+       
 
 def ai_chat_external(prompt):
     try:
@@ -162,6 +183,34 @@ def ai_sound_analysis(prompt, sound):
 
 
 
+def say(speak: bool, text: str, voice: str ='Daniel') -> str:
+    """
+    Speak the given text if the 'speak' flag is True.
+
+    Args:
+        speak (bool): Flag to determine whether to speak the text.
+        text (str): The text to be spoken.
+
+    Returns:
+        str: The input text.
+    """
+    if speak:
+        if platform.system() == 'Darwin':  # macOS
+            # Save the speech to an audio file
+            subprocess.run(["say", "-o", 'Sound/prompt.aiff', text])
+            
+            ALLOWED_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 /-.,?_!@$%^&*()#|")
+            clean_text = ''.join(c for c in text if c in ALLOWED_CHARS)
+
+            subprocess.run(["say", "-v", voice, clean_text])
+        # elif platform.system() == 'Windows':  # Windows
+        #     engine = pyttsx3.init()
+        #     engine.say(text)
+        #     engine.runAndWait()
+    return text
+
+
+
 
 def ai_function_execution(prompt, tools, available_functions):
     try:
@@ -212,6 +261,31 @@ def ai_function_execution(prompt, tools, available_functions):
 
 
 
+def get_speech():
+
+    recognizer = STT.Recognizer()
+    recognizer.energy_threshold = 200  # default is 300
+    # recognizer.pause_threshold = 0.5  # default is 0.8
+    # recognizer.non_speaking_duration = 0.5  # default is 0.5
+
+    with STT.Microphone() as source:
+        print('say something: ')
+        audio = recognizer.listen(source)
+
+
+
+    try:
+        text = recognizer.recognize_google(audio)
+        print('You Said: ', text)
+        return text
+    except STT.UnknownValueError:
+        print("Google Speech Recognition could not understand the audio")
+        return ""
+    except STT.RequestError as e:
+        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        return ""
+
+
 
 
 
@@ -253,37 +327,6 @@ tools = all_tools + [
         },
     }
 ]
-
-
-
-
-# print("\n\n", ai_function_execution(a.get_prompt(), tools, available_functions), "\n\n")
-
-
-# print("\n\n", ai_function_execution('''Hello. can you tell me the current time in ghana? After that Greet me Since My name is John Ken. Now Tell me the result of this expression (900/3-300/10000). then tell me what is in the image i will give you based on the url/path : https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgsNffTLsiZ7L-8kk8Dy8QppedW9zjI9tkkaWIq04rOkhL7OYKV-pOvBtuVMIepqDA64o&usqp=CAU. After Everything Tell me what you know about the BMW. Also, Can you please analyse this song for me? this is the audio file /audio.mp3. Can you do this for me?''', tools, available_functions), "\n\n")
-
-'''
- Hello. can you tell me the current time in ghana? After that Greet me Since My name is John Ken. Now Tell me the result of this expression (900/3-300/10000). then tell me what is in the image i will give you based on the url/path : https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgsNffTLsiZ7L-8kk8Dy8QppedW9zjI9tkkaWIq04rOkhL7OYKV-pOvBtuVMIepqDA64o&usqp=CAU. After Everything Tell me what you know about the BMW. Also, Can you please analyse this song for me? this is the audio file /audio.mp3. Can you do this for me?
-'''
-
-
-
-
-# def chat():
-#     while True:
-#         # user_prompt = a.get_speech_prompt()
-#         user_prompt = a.get_text_prompt()
-#         if user_prompt.lower() == 'x' or user_prompt.lower() == 'exit':
-#             break
-#         elif user_prompt == "":
-#             print("--------")
-#             continue
-#         response = ai_function_execution(user_prompt, tools, available_functions)
-#         # print(response)
-#         print_response("\n\n"+response+"\n\n")
-#         # say(True, response or "Nothing in response")
-
-# # chat()s
 
 
 
