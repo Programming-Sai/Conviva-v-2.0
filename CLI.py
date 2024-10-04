@@ -41,7 +41,7 @@ x = AsciiColors()
 
 class CLI(ag.ArgumentParser):
     def __init__(self):
-        super().__init__(description="""This command-line interface (CLI) tool offers a range of functionalities, including mathematical calculations, date and time retrieval, web browsing, audio and video downloading from YouTube, and AI-powered features such as chat and media analysis. Users can perform actions like taking screenshots, locking the screen, managing system volume, and more through straightforward commands and options. The program supports both speech and text interactions for an engaging user experience.""", add_help=False)  
+        super().__init__(description="This command-line interface (CLI) tool offers a range of functionalities, including mathematical calculations, date and time retrieval, web browsing, audio and video downloading from YouTube, and AI-powered features such as chat and media analysis. Users can perform actions like taking screenshots, locking the screen, managing system volume, and more through straightforward commands and options. The program supports both speech and text interactions for an engaging user experience.")  
 
         self.subparsers = self.add_subparsers(dest='command', required=False, parser_class=ag.ArgumentParser)
 

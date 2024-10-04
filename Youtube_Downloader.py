@@ -357,7 +357,6 @@ class YoutubeDownloader:
                 elif d['status'] == 'finished':
                     # Print the final bar when the download is complete
                     title = d['info_dict']['title']
-                    print(title)
                     self.cli_progress_animation(100, self.total_size, type, final=True, title=title)
             except:
                 raise ValueError
