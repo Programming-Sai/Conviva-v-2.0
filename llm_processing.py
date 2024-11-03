@@ -240,10 +240,12 @@ def say(speak: bool, text: str, voice: str = 'Daniel') -> str:
             # Run the speech command, allowing it to be stopped
             try:
                 # Save the speech to an audio file
-                subprocess.run(["say", "-o", 'Sound/prompt.aiff', text], check=True)
+                # subprocess.run(["say", "-o", 'Sound/prompt.aiff', text])
 
-                # Speak out loud
-                subprocess.run(["say", "-v", voice, clean_text], check=True)
+                # # Speak out loud
+                # subprocess.run(["say", "-v", voice, clean_text])
+                subprocess.run(["say", "-v", "Daniel", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
+
             except subprocess.CalledProcessError:
                 if stop_speaking:
                     print("Speech stopped.")

@@ -1,1 +1,1 @@
-winfo_ismapped
+main_text_content

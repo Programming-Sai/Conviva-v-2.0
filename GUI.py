@@ -8,7 +8,7 @@ import subprocess
 import threading
 import tkinter as tk
 from tkinter import PhotoImage
-
+import time
 from llm_processing import say
 
 
@@ -44,7 +44,7 @@ class GUI(ctk.CTk):
 
 
         self.current_page_index = 0
-        self.pages = [ self.speech_chat, self.page_two, self.page_three ]
+        self.pages = [  self.speech_chat, self.page_three, self.text_chat,  ]
 
 
 
@@ -52,50 +52,83 @@ class GUI(ctk.CTk):
 
         self.geometry(f"{self.size[0]}x{self.size[1]}+{int(self.winfo_screenwidth()/2)-int(self.size[0]/2)}+{int(self.winfo_screenheight()/2)-int(self.size[1]/2)-50}")
        
+
+        self.page_frame = tk.Frame(self)
+        
+        self.speech_chat_frame = tk.Frame(self.page_frame)
+        self.main_speech_content = tk.Frame(self.speech_chat_frame, )
+        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[1])
+
+
+        self.text_chat_frame = tk.Frame(self.page_frame)
+        self.main_text_content = tk.Frame(self.text_chat_frame, )
+        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[8])
+
         self.load_page()
+        
+        
+
+
+        
+
+        self.bind("<Command-b>", self.toggle_side_panel)
+        self.bind("<Control-b>", self.toggle_side_panel)
 
 
         self.mainloop()
 
+
+
+
+
     def load_page(self):
-        self.page_frame = tk.Frame(self)
         self.pages[self.current_page_index]()
         self.page_frame.pack(fill='both', expand=True)
         self.nav_buttons()
+
+
 
     def clear_page(self, frame):
         for child in frame.winfo_children():
             child.destroy()
 
+
+
+
     def speech_chat(self):
         self.speech_chat_frame = tk.Frame(self.page_frame)
+        
+        self.side_panel_creator(self.speech_chat_frame)
+        self.main_speech_content = tk.Frame(self.speech_chat_frame, )
 
-        self.side_panel_visible = True
-
-
-
-        self.side_panel = tk.Frame(self.speech_chat_frame)
-        self.side_panel_content()
-        self.side_panel.place(x=0, y=0, relheight=1.0)
-
-
-        self.main_content = tk.Frame(self.speech_chat_frame, )
-        self.main_content_content()
-        self.main_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+        self.main_speech_content_content()
+        self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
 
 
 
         self.speech_chat_frame.pack(fill='both', expand=True)
 
-        self.bind("<Command-b>", self.toggle_side_panel)
-        self.bind("<Control-b>", self.toggle_side_panel)
+       
+
+    def side_panel_creator(self, frame):
+        self.side_panel_visible = True
+        self.side_panel = tk.Frame(frame)
+        self.side_panel_content()
+        self.side_panel.place(x=0, y=0, relheight=1.0)
+
+
 
 
     def toggle_side_panel(self, e):
         if self.side_panel_visible:
             # Hide the side panel
             self.side_panel.place_configure(relwidth=0)
-            self.main_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+
+            if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
+                self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+            if self.main_text_content is not None and self.main_text_content.winfo_exists():
+                self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+
             self.side_panel_visible = False
             self.main_menu_button_visible = True
             self.toggle_main_menu_button()
@@ -103,12 +136,13 @@ class GUI(ctk.CTk):
         else:
             # Show the side panel
             self.side_panel.place_configure(relwidth=0.25)
-            self.main_content.place_configure(relx=0.25, relwidth=0.75, rely=0, relheight=1.0)
+            if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
+                self.main_speech_content.place_configure(relx=0.25, relwidth=0.75, rely=0, relheight=1.0)
+            if self.main_text_content is not None and self.main_text_content.winfo_exists():
+                self.main_text_content.place_configure(relx=0.25, relwidth=0.75, rely=0, relheight=1.0)
             self.side_panel_visible = True
             self.main_menu_button_visible = False
             self.toggle_main_menu_button()
-
-
 
     def side_panel_content(self):
         self.menu_image = ctk.CTkImage(
@@ -140,31 +174,41 @@ class GUI(ctk.CTk):
 
         conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
 
-    def main_content_content(self):
+    def main_speech_content_content(self):
         # Load image and setup header
+        self.topbar(self.main_speech_content)
+
+        # Setup body
+        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[1])
+
+        self.pulser = Pulser(self, self.speech_body, (self.purple_palette[1], self.purple_palette[1], self.purple_palette[1], self.purple_palette[1]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
+
+        # Initialize widgets but don't pack them yet
+        self.chatbar(self.speech_body)
+
+        self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+
+
+    def topbar(self, frame):
         self.menu_image = ctk.CTkImage(
             dark_image=Image.open("Images/Menu.png"), 
             light_image=Image.open("Images/Menu.png")
         )
 
-        header = tk.Frame(self.main_content, background=self.purple_palette[10])
+        header = tk.Frame(frame, background=self.purple_palette[10])
         self.maintoggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, 
                                             fg_color=self.purple_palette[8], hover_color=self.purple_palette[7], 
                                             command=lambda e=None: self.toggle_side_panel(e))
         self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
-        # Setup body
-        self.body = tk.Frame(self.main_content, background=self.purple_palette[1])
 
 
-        self.pulser = Pulser(self, self.body, (self.purple_palette[1], self.purple_palette[1], self.purple_palette[1], self.purple_palette[1]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
-
-        # Initialize widgets but don't pack them yet
+    def chatbar(self, frame):
         self.prompt = tk.StringVar()
 
-        self.entry_widget = ctk.CTkEntry(self.body, width=500, height=50, corner_radius=50, textvariable=self.prompt)
-        self.textbox_widget = ctk.CTkTextbox(self.body, width=500, height=100, corner_radius=10)
+        self.entry_widget = ctk.CTkEntry(frame, width=500, height=50, corner_radius=50, textvariable=self.prompt)
+        self.textbox_widget = ctk.CTkTextbox(frame, width=500, height=100, corner_radius=10)
 
         self.entry_widget.focus_set()
         self.textbox_widget.focus_set()
@@ -173,32 +217,43 @@ class GUI(ctk.CTk):
         self.entry_widget.pack(pady=20)
 
         # Bind events
-        self.entry_widget.bind("<Key>", self.toggle_prompt_box)
-        self.textbox_widget.bind("<Key>", self.toggle_prompt_box)
-        self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box)
-        self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box)
-        self.entry_widget.bind("<Return>", self.get_prompt_from_text_box)
-
-        self.body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+        if frame == self.speech_body:
+            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box)
+            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box)
+            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box)
+        if frame == self.text_body:
+            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box_text)
+            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
+            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
 
 
     def toggle_prompt_box(self, e):
         current_text = self.prompt.get()
         current_textbox_content = self.textbox_widget.get("1.0", tk.END).strip()
 
-        if len(current_text) > 10 and self.entry_widget.winfo_ismapped():
+        # Switch to the textbox if text length exceeds 4
+        if len(current_text) >= 75 and self.entry_widget.winfo_ismapped():
             # Switch to the textbox
             self.entry_widget.pack_forget()
             self.textbox_widget.delete("1.0", tk.END)  
             self.textbox_widget.insert("1.0", current_text)  # Insert new text
             self.textbox_widget.focus_set()
             self.textbox_widget.pack(pady=20)
-        elif len(current_textbox_content) <= 10 and self.textbox_widget.winfo_ismapped():
+
+        # Switch back to the entry widget if text length drops below 4
+        elif len(current_textbox_content) < 75 and self.textbox_widget.winfo_ismapped():
             # Switch back to the entry widget
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.prompt.set(current_textbox_content)  
             self.entry_widget.pack(pady=20)
+
+
+
 
     def toggle_main_menu_button(self):
         if self.main_menu_button_visible:
@@ -206,7 +261,6 @@ class GUI(ctk.CTk):
         else:
             self.maintoggle_button.place_forget()
 
-       
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
             prompt = self.prompt.get()
@@ -224,16 +278,99 @@ class GUI(ctk.CTk):
 
     
    
-    def page_two(self):
-        self.label = tk.Label(self.page_frame, text='Page Two', background='purple')
-        self.label.pack(fill='both', expand=True)
-        # self.page_frame.pack()
+    def text_chat(self):
+        self.text_chat_frame = tk.Frame(self.page_frame)
+        
+        self.side_panel_creator(self.text_chat_frame)
+
+        self.main_text_content = tk.Frame(self.text_chat_frame, )
+        
+        self.main_text_content_content()
+        self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+
+
+
+        self.text_chat_frame.pack(fill='both', expand=True)
+
+
+    def main_text_content_content(self):
+        self.topbar(self.main_text_content)
+
+        # Setup body
+        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[8])
+
+        self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[8])
+        
+        tk.Frame(self.scroll_frame, height=50).pack(side='top')
+        # self.scroll_frame_content()
+        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+
+        self.scroll_frame.pack(fill='both', expand=True)
+
+        self.bind("<Command-j>", self.scroll_to_top)
+
+        # Initialize widgets but don't pack them yet
+        self.chatbar(self.text_body)
+
+        self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+        
+
+
+    def scroll_frame_content(self):
+        tk.Frame(self.scroll_frame, height=50).pack()
+        for i in range(30):
+            label = ctk.CTkLabel(self.scroll_frame, text='Test' + str(i), fg_color='red', corner_radius=10)
+            if i % 2 == 0:
+                label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w')  
+            else:
+                label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+        tk.Frame(self.scroll_frame, height=50).pack()
+
+
+
+
+    
+    def get_prompt_from_text_box_text(self, e):
+        if self.entry_widget.winfo_ismapped(): 
+            prompt = self.prompt.get()
+            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+            self.prompt.set("")
+        else:
+            prompt = self.textbox_widget.get("1.0", tk.END).strip()
+            
+            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+
+            self.textbox_widget.delete("1.0", tk.END) 
+            self.prompt.set("")
+            self.textbox_widget.pack_forget()
+            self.entry_widget.focus_set()
+            self.entry_widget.pack(pady=20)
+        self.auto_scroll_to_end()
+
+    def auto_scroll_to_end(self):
+        self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
+        self.scroll_frame._parent_canvas.configure(yscrollcommand=self.scroll_frame._scrollbar.set, scrollregion=self.scroll_frame._parent_canvas.bbox('all'))
+        self.scroll_frame._parent_canvas.yview_moveto(1.0)
+        print(f"Scrolled to end")
+
+    def scroll_to_top(self, event=None):
+        self.scroll_frame._parent_canvas.yview_moveto(0.0)
+        print("Scrolled to the top")  # Debugging line
+
+
+    def wrap_length(self, rel_width):
+        return rel_width * self.winfo_width()
+        
 
 
     def page_three(self):
         self.label = tk.Label(self.page_frame, text='Page Three', background='green')
         self.label.pack(fill='both', expand=True)
         # self.page_frame.pack()
+
+       
 
 
     def nav_buttons(self):
@@ -337,9 +474,16 @@ class Pulser(ctk.CTkFrame):
         Returns:
             None
         """
-        subprocess.run(["say", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
-        # say(True, text)
-        self.y, self.sr = librosa.load(self.output_file, sr=None)
+        
+
+        subprocess.run(["say", "-v", "Daniel", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
+
+        try:
+            # say(True, text)
+            self.y, self.sr = librosa.load(self.output_file, sr=None)
+        except Exception as e:
+             print(f"Error loading audio file: {e}")
+
         self._toggle_speech()
 
     def _toggle_speech(self) -> None:
@@ -420,11 +564,23 @@ class Pulser(ctk.CTkFrame):
             x = random.randint(200, 250)
         else:
             x = 200
-        if restart:
-            self.parent.after(1, self._play_gif, container, frames)
-        photo_image = ImageTk.PhotoImage(frame.resize((x, x)))
-        container.configure(image=photo_image)
-        container.image = photo_image
+
+        # Ensure the container exists and is still valid
+        if container.winfo_exists():
+            if restart:
+                self.parent.after(1, self._play_gif, container, frames)
+            
+            # Resize and configure the image
+            photo_image = ImageTk.PhotoImage(frame.resize((x, x)))
+            
+            try:
+                container.configure(image=photo_image)
+                container.image = photo_image  # Keep a reference to avoid garbage collection
+            except tk.TclError as e:
+                print(f"TclError when configuring image: {e}")
+        else:
+            print("Container no longer exists; unable to configure image.")
+
 
 
 
