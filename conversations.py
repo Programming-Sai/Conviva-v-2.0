@@ -3,10 +3,12 @@ import json
 import os
 
 class Conversation:
-    def __init__(self):
+    def __init__(self, title_function):
+        self.title_function = title_function
         self.move_file = False
         self.current_file_name = None  # Initialize to store the current file name
-        self.conversation_history = []  # Initialize as an empty list
+        self.conversation_history = []  
+        self.title = ''
         self.system_prompt =  {
                     'role': "system",
                     'content': """
@@ -34,9 +36,10 @@ class Conversation:
         self.create_new_conversation()
 
 
-    def generate_filename(self, prefix="file", extension="json"):
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"{prefix}_{timestamp}.{extension}"
+    def generate_filename(self, title='conversation_title', prefix="file", extension="json"):
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        filename = f"{timestamp}_{title}"
+        return f"{prefix}_{filename}.{extension}"
 
     def append_to_history(self, role, content, tool_call_id=None, function_name=None):
         file_name = self.current_file_name
@@ -56,10 +59,10 @@ class Conversation:
 
 
         try:
-            with open("Conversations/current_conversation_file_name.txt", 'r') as f:
+            with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
                 self.current_file_name = f.read().strip()
         except:
-            self.current_file_name = "Conversations/" + self.generate_filename(prefix='conviva')
+            self.current_file_name = "Conversations/" + self.generate_filename(title=self.title, prefix='conviva')
 
         if file_name != self.current_file_name:
             self.conversation_history = [self.system_prompt, conversation[-1]]
@@ -74,16 +77,18 @@ class Conversation:
 
 
     def create_new_conversation(self):
+       
         try:
-            with open("Conversations/current_conversation_file_name.txt", 'r') as f:
+            with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
                 stored_file_name = f.read().strip()
 
                 if not stored_file_name or self.move_file:
                     # Generate a new filename if the stored one is empty or move_file is True
-                    self.current_file_name = "Conversations/" + self.generate_filename(prefix='conviva')
+                    self.title = self.title_function()
+                    self.current_file_name = "Conversations/" + self.generate_filename(title=self.title, prefix='conviva')
 
                     # Update the text file with the new filename
-                    with open("Conversations/current_conversation_file_name.txt", 'w') as ccfn:
+                    with open("Conversations/.current_conversation_file_name.txt", 'w') as ccfn:
                         ccfn.write(self.current_file_name)
 
                     # Reset move_file back to False
@@ -109,8 +114,9 @@ class Conversation:
 
         except FileNotFoundError:
             # If the text file doesn't exist, create a new file and update it
-            self.current_file_name = "Conversations/" + self.generate_filename(prefix='conviva')
-            with open("Conversations/current_conversation_file_name.txt", 'w') as ccfn:
+            self.title = self.title_function()
+            self.current_file_name = "Conversations/" + self.generate_filename(title=self.title, prefix='conviva')
+            with open("Conversations/.current_conversation_file_name.txt", 'w') as ccfn:
                 ccfn.write(self.current_file_name)
 
             # Initialize conversation history for the new file
@@ -120,6 +126,22 @@ class Conversation:
             with open(self.current_file_name, 'w') as ch:
                 json.dump(self.conversation_history, ch, indent=4)
 
+    def list_conversation_histories(self):
+        conversation_data = []
+        files = os.listdir("Conversations/")
+        json_files = [f.split('_') for f in files if f.endswith('.json')]
+        for idx, i in enumerate(json_files, 1):
+            conversation_data.append((idx, ''.join(i[1:4]), '_'.join(i), i[-1].replace('.json', '').replace('-', ' ') or ' '))
+        return (conversation_data)
+    
 
-
+    def switch_conversation(self, filter_by):
+        for i in self.list_conversation_histories():
+            if filter_by == i[1] or filter_by == i[-1]:
+                self.current_file_name = 'Conversations/' + i[2]
+                with open("Conversations/.current_conversation_file_name.txt", 'w') as ccfn:
+                    ccfn.write(self.current_file_name)
+                return 'Success'
+        return 'Failed'
+        
 

@@ -11,7 +11,7 @@ import select
 import json
 from utility_functions import *
 from Youtube_Downloader import YoutubeDownloader
-import os
+from tabulate import tabulate
 
 
 
@@ -110,7 +110,9 @@ class CLI(ag.ArgumentParser):
         chat_parser = ai_subparser_subparsers.add_parser('chat', help="Start an AI-powered chat conversation. Use '--speech' or '--text' for interaction type.")
         chat_parser.add_argument('-s', '--speech', action='store_true', help='Initiate the conversation with speech recognition and AI responses.')
         chat_parser.add_argument('-t', '--text', action='store_true', help='Start a text-based conversation with AI for typing messages.')
-        chat_parser.add_argument('-tc', '--toggle-conversation', action='store_true', help='Start a new conversation from scratch.')
+        chat_parser.add_argument('-cc', '--create-conversation', action='store_true', help='Start a new conversation from scratch.')
+        chat_parser.add_argument('-sc', '--switch-conversation', type=str, help='Switch to a previous conversation.')
+        chat_parser.add_argument('-lc', '--list-conversation', action='store_true', help='Show all conversations')
 
         # AI image analysis
         image_subparser = ai_subparser_subparsers.add_parser('ai-image', help="Use AI to analyze an image and return insights or features.")
@@ -119,9 +121,6 @@ class CLI(ag.ArgumentParser):
         # AI audio analysis
         audio_subparser = ai_subparser_subparsers.add_parser('ai-audio', help="Use AI to analyze an audio clip and return insights or features.")
         audio_subparser.add_argument('audio', type=str, help='Path to the audio file to be analyzed by AI.')
-
-
-
 
     def process_args(self):
         try:
@@ -136,7 +135,6 @@ class CLI(ag.ArgumentParser):
             elif args.lock_screen:
                 print(lock_screen())
             elif args.manual:
-                
                 self.print_all_help()
             elif args.command == 'calc':
                 if args.expression:
@@ -194,9 +192,18 @@ class CLI(ag.ArgumentParser):
             elif args.command == 'ai':
                 if args.subcommand == 'chat':
                     if args.speech or args.text:
-                        if args.toggle_conversation:
+                        if args.create_conversation:
                             self.toggle_conversation()
-                        self.start_conversation(args.speech, args.text)
+                        elif args.switch_conversation:
+                            success  = a.conversation.switch_conversation(args.switch_conversation)
+                            if success == 'Failed':
+                                print(f'Sorry {x.color(args.switch_conversation, x.ITALIC)} does not exist')
+                            else:
+                                print(f'Conversation Switched From {x.color(a.conversation.current_file_name, x.ITALIC)} to {x.color(args.switch_conversation, x.ITALIC)} Successfully')
+                        elif args.list_conversation:
+                            self.list_conversations()
+                        else:
+                            self.start_conversation(args.speech, args.text)
                     else:
                         print("Please specify an interaction mode with --speech or --text.")
                 elif args.subcommand == 'ai-image':
@@ -216,8 +223,6 @@ class CLI(ag.ArgumentParser):
             return
         except Exception as e:
             print(f'\n\nSomething went Wrong. This Was The issue: {e}')
-
-
 
     def validate_speed(self, value):
         value = float(value)
@@ -269,8 +274,6 @@ class CLI(ag.ArgumentParser):
         spinner_thread.join()  # Wait for the spinner thread to finish
        
         print(result)
-
-
 
     def get_user_input(self, speech, text):
         if speech:
@@ -348,11 +351,9 @@ class CLI(ag.ArgumentParser):
 
     def toggle_conversation(self):
         a.conversation.move_file = True
-        print(a.conversation.move_file)
         a.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
         a.conversation.move_file = False
-        print(a.conversation.move_file)
 
     def spinner(self):
         """Spinner animation displayed while waiting."""
@@ -378,7 +379,13 @@ class CLI(ag.ArgumentParser):
                 sys.stdout.flush()
                 time.sleep(0.5) 
 
+    def list_conversations(self):
+        history = a.conversation.list_conversation_histories()
+        headers = ['No.', 'ID', "File", 'Title']
+        print(tabulate(history, headers=headers, stralign="center", numalign="center", tablefmt="pipe"))
 
+    def get_previous_conversation(self):
+        return input('Which conversation would you like to switch to? ')
 
 if __name__ == '__main__':
     CLI()
@@ -386,4 +393,9 @@ if __name__ == '__main__':
 
 
 
-# TODO make so that one can toggle between previous conversation based on an id or title. there should also, be a function that allows the user to create a title, and even update it. also, there should be one that allows the user to view all conversation histories., like a table, with their title, id, file name, first and then last entry. so for the cli, when the user uses -tc, without any title name or id, then i new conversation is created, else, the user is navigated back to the other conversation. all this should be done in the Conversations class.
+# TODO Make it so that one can select -lc, or the others also without specifying the interaction mode.
+# TODO Modify code so that it run on Windows as well.
+# TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in flux. when it is done, it stops adding that extra string.
+# TODO Check on how to atart and stop a thread. OR you can write a function to handle that for you.
+# TODO Find out how to do websrcapping without showing your ip address (i think it is called proxy something.)
+# TODO Are groq and langchain the same thing or type of thisg?

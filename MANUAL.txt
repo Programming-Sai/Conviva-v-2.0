@@ -1,0 +1,80 @@
+
+                   [94mCommand Line Interface (CLI) Tool[0m                   
+
+
+ usage: CLI.py [-h] [-t] [-s] [-f FILE_PATH] [-l] [-m]
+              {calc,datetime,url,youtube,volume,ai} ...
+
+This command-line interface (CLI) tool offers a range of functionalities,
+including mathematical calculations, date and time retrieval, web browsing,
+audio and video downloading from YouTube, and AI-powered features such as chat
+and media analysis. Users can perform actions like taking screenshots, locking
+the screen, managing system volume, and more through straightforward commands
+and options. The program supports both speech and text interactions for an
+engaging user experience.
+
+positional arguments:
+  {calc,datetime,url,youtube,volume,ai}
+    calc                Perform basic mathematical operations
+    datetime            Returns the current date or time
+    url                 Opens a website based on a given link
+    youtube             Performs some basic YouTube operations
+    volume              Manages the volume of the system.
+    ai                  Provides various AI-powered features like chat and
+                        speech synthesis.
+
+options:
+  -h, --help            show this help message and exit
+  -t, --terminal        Opens the terminal
+  -s, --screenshot      Takes a Screenshot.
+  -f FILE_PATH, --file-path FILE_PATH
+                        Takes a Screenshot and stores it in a given file..
+  -l, --lock-screen     locks the screen
+  -m, --manual          Show help information for all commands.
+
+
+Available commands and options:
+  help: show this help message and exit
+  terminal: Opens the terminal
+  screenshot: Takes a Screenshot.
+  file_path: Takes a Screenshot and stores it in a given file..
+  lock_screen: locks the screen
+  manual: Show help information for all commands.
+
+Subcommand: CLI.py calc
+  Help: Performs calculations based on mathematical expressions.
+    help: show this help message and exit
+    expression: This is the matimatical expression to be operated on.
+    precision: Specifies the number of decimal places that a value should fall under. it defaults to 0
+
+Subcommand: CLI.py datetime
+  Help: Returns the current date and/or time.
+    help: show this help message and exit
+    time: This determines if the time is needed.
+    date: This determines if the date is needed.
+
+Subcommand: CLI.py url
+  Help: Opens the provided website link.
+    help: show this help message and exit
+    link: This is the link to be opened
+
+Subcommand: CLI.py youtube
+  Help: Performs actions related to YouTube such as downloading videos.
+    help: show this help message and exit
+    download: Download options for YouTube
+
+Subcommand: CLI.py volume
+  Help: Manages system volume, allowing you to get, set, or mute the volume.
+    help: show this help message and exit
+    get_volume: Get's and display's the volume
+    set_volume: Sets the volume. Usage: -s <volume>
+    mute_volume: Mutes the volume
+
+Subcommand: CLI.py ai
+  Help: None
+    help: show this help message and exit
+    subcommand: No description available
+
+
+
+

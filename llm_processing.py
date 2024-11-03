@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from utility_functions import *
 from cli_colors import AsciiColors
 from conversations import Conversation
-
+from pynput import keyboard
+import threading
 import platform
 import subprocess
 import speech_recognition as STT
@@ -36,8 +37,10 @@ class AI_Utilties:
             "llama3-8b-8192", 
             "distil-whisper-large-v3-en"
         ]
-        self.conversation = Conversation()
+        
+        self.conversation = Conversation(self.cli_title_function)
 
+        
     def get_text_prompt(self):
         return input(m.color("\nYou: ", m.GREEN))
    
@@ -76,7 +79,8 @@ class AI_Utilties:
         # Check if it is not a URL and matches file path patterns
         return not self.is_url(string) and (self.is_windows_path(string) or self.is_unix_path(string))
 
-
+    def cli_title_function(self):
+        return input('Please what would you like to name this conversation?  ').replace(' ', '-').replace('_', '-')
 
 '''
 Set up the STT for the cli so it looks nice and easy to use.  and also set up an interrupt mechanism so that speech can be cut when not needed.
@@ -89,8 +93,9 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 
 
 
-
 a = AI_Utilties()
+x = AsciiColors()
+
 
 def ai_sound_analysis_external(prompt, sound):
 
@@ -183,32 +188,75 @@ def ai_sound_analysis(prompt, sound):
 
 
 
-def say(speak: bool, text: str, voice: str ='Daniel') -> str:
+
+# Global flag to stop speech
+stop_speaking = False
+
+def stop_speech():
     """
-    Speak the given text if the 'speak' flag is True.
+    Monitors for the 'I' key press to stop the speech using pynput.
+    """
+    global stop_speaking
+    
+    def on_press(key):
+        try:
+            if key.char == 'i':  # Stop if 'I' is pressed
+                stop_speaking = True
+                if platform.system() == 'Darwin':
+                    subprocess.run(['killall', 'say'])
+                return False  # Stop listener
+        except AttributeError:
+            # Handle special keys if needed
+            pass
+
+    # Start listening for key presses
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+def say(speak: bool, text: str, voice: str = 'Daniel') -> str:
+    """
+    Speak the given text if the 'speak' flag is True, and stop when 'I' is pressed.
 
     Args:
         speak (bool): Flag to determine whether to speak the text.
         text (str): The text to be spoken.
+        voice (str): Voice name (default is 'Daniel' on macOS).
 
     Returns:
         str: The input text.
     """
+    global stop_speaking
+    stop_speaking = False
+
     if speak:
         if platform.system() == 'Darwin':  # macOS
-            # Save the speech to an audio file
-            subprocess.run(["say", "-o", 'Sound/prompt.aiff', text])
-            
-            ALLOWED_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 /-.,?_!@$%^&*()#|")
+            # Start the thread that waits for 'I' to stop the speech
+            stop_thread = threading.Thread(target=stop_speech)
+            stop_thread.start()
+
+            ALLOWED_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 /-.,?_!@$%^&*()#")
             clean_text = ''.join(c for c in text if c in ALLOWED_CHARS)
 
-            subprocess.run(["say", "-v", voice, clean_text])
+            # Run the speech command, allowing it to be stopped
+            try:
+                # Save the speech to an audio file
+                subprocess.run(["say", "-o", 'Sound/prompt.aiff', text], check=True)
+
+                # Speak out loud
+                subprocess.run(["say", "-v", voice, clean_text], check=True)
+            except subprocess.CalledProcessError:
+                if stop_speaking:
+                    print("Speech stopped.")
+        
+            # Join the thread back to ensure proper termination
+            stop_thread.join()
+
         # elif platform.system() == 'Windows':  # Windows
         #     engine = pyttsx3.init()
         #     engine.say(text)
         #     engine.runAndWait()
-    return text
 
+    return text
 
 
 
@@ -269,20 +317,18 @@ def get_speech():
     # recognizer.non_speaking_duration = 0.5  # default is 0.5
 
     with STT.Microphone() as source:
-        print('say something: ')
+        print(x.color('Say something: ', x.BRIGHT_BLUE))
         audio = recognizer.listen(source)
-
-
 
     try:
         text = recognizer.recognize_google(audio)
-        print('You Said: ', text)
+        print(x.color('You Said: ', x.GREEN), text)
         return text
     except STT.UnknownValueError:
-        print("Google Speech Recognition could not understand the audio")
+        print(x.color("...", x.BRIGHT_RED))
         return ""
     except STT.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        print(x.color("Could not request results from Google Speech Recognition service; {0}".format(e), x.BRIGHT_RED))
         return ""
 
 

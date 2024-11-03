@@ -1,1 +1,1 @@
-%dth
+winfo_ismapped
