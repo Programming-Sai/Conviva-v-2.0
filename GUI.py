@@ -44,7 +44,7 @@ class GUI(ctk.CTk):
 
 
         self.current_page_index = 0
-        self.pages = [  self.speech_chat, self.page_three, self.text_chat,  ]
+        self.pages = [ self.text_chat, self.speech_chat, self.page_three, ]
 
 
 
@@ -253,31 +253,30 @@ class GUI(ctk.CTk):
             self.entry_widget.pack(pady=20)
 
 
-
-
     def toggle_main_menu_button(self):
         if self.main_menu_button_visible:
             self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0) 
         else:
             self.maintoggle_button.place_forget()
 
+
+
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
-            prompt = self.prompt.get()
-            self.pulser.speech(prompt)
+            self.user_prompt = self.prompt.get()
+            self.pulser.speech(self.user_prompt)
             self.prompt.set("")
         else:
-            prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.pulser.speech(prompt)
+            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
+            self.pulser.speech(self.user_prompt)
             self.textbox_widget.delete("1.0", tk.END) 
             self.prompt.set("")
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
+        print(self.user_prompt)
 
 
-    
-   
     def text_chat(self):
         self.text_chat_frame = tk.Frame(self.page_frame)
         
@@ -309,8 +308,18 @@ class GUI(ctk.CTk):
 
         self.bind("<Command-j>", self.scroll_to_top)
 
-        # Initialize widgets but don't pack them yet
+
         self.chatbar(self.text_body)
+
+        self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=100, height=100, fg_color=self.purple_palette[9])
+
+        self.button_frame.place(relx=.8, rely=.8)
+        self.button_frame.pack_propagate(False) 
+
+        self.button_frame.bind("<Button-1>", self.scroll_button_method)
+
+        self.scroll_button = ctk.CTkButton(self.button_frame, text="▲", font=("Segoe UI Symbol", 24), width=0, height=100, fg_color=self.purple_palette[9], hover_color=self.purple_palette[9], command=self.scroll_button_method)
+        self.scroll_button.pack()
 
         self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
         
@@ -327,37 +336,94 @@ class GUI(ctk.CTk):
         tk.Frame(self.scroll_frame, height=50).pack()
 
 
-
-
     
     def get_prompt_from_text_box_text(self, e):
         if self.entry_widget.winfo_ismapped(): 
-            prompt = self.prompt.get()
-            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
-            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+            self.user_prompt = self.prompt.get()
             self.prompt.set("")
         else:
-            prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            
-            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
-            ctk.CTkLabel(self.scroll_frame, text=prompt, justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
-
+            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
             self.textbox_widget.delete("1.0", tk.END) 
             self.prompt.set("")
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
+
+
+
+        ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+        
+        
+        response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
+        response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+
+        # Initialize the state for this label
+        response_label.typing_state = {
+        "text": "",  # Current text in the label
+        "count": 0,  # Index of the character to add next
+        "prompt": self.user_prompt  # Store the prompt specifically for this label
+    }
+        
+        self.slider(response_label)
+
+
+        
         self.auto_scroll_to_end()
+
+
+    def slider(self, label):
+        typing_state = getattr(label, "typing_state", None)
+    
+        if not typing_state:
+        # If the state is not set, initialize it
+            typing_state = {
+                "text": "",
+                "count": 0,
+                "prompt": ""  # Add an empty prompt as a fallback
+            }
+            label.typing_state = typing_state
+        
+        # Get current state values
+        text = typing_state["text"]
+        count = typing_state["count"]
+        user_prompt = typing_state["prompt"]  # Retrieve the specific prompt for this label
+        
+        # If all characters have been added, stop the effect
+        if count >= len(user_prompt):
+            label.configure(text=user_prompt)  # Display the full text
+        else:
+            # Add the next character to the label
+            text += user_prompt[count]
+            label.configure(text=text)
+
+       # Update the state for the next call
+        typing_state["count"] += 1
+        typing_state["text"] = text
+
+        # Call the slider function again after 100 ms for typing effect
+        label.after(50, lambda: self.slider(label))
+
+
+    def scroll_button_method(self, e=None):
+        direction = self.scroll_button.cget('text')
+        if direction == '▲':
+            self.scroll_to_top()
+            self.scroll_button.configure(text = '▼')
+        else:
+            self.auto_scroll_to_end()
+            self.scroll_button.configure(text = '▲')
+
+
 
     def auto_scroll_to_end(self):
         self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
         self.scroll_frame._parent_canvas.configure(yscrollcommand=self.scroll_frame._scrollbar.set, scrollregion=self.scroll_frame._parent_canvas.bbox('all'))
         self.scroll_frame._parent_canvas.yview_moveto(1.0)
-        print(f"Scrolled to end")
+
+
 
     def scroll_to_top(self, event=None):
         self.scroll_frame._parent_canvas.yview_moveto(0.0)
-        print("Scrolled to the top")  # Debugging line
 
 
     def wrap_length(self, rel_width):
@@ -371,7 +437,6 @@ class GUI(ctk.CTk):
         # self.page_frame.pack()
 
        
-
 
     def nav_buttons(self):
         for idx in range(3):
@@ -392,6 +457,7 @@ class GUI(ctk.CTk):
         self.pages[self.current_page_index]()
         self.page_frame.pack(fill='both', expand=True)
         self.nav_buttons()
+
 
 
     def set_current_page_index(self, index):

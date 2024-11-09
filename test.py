@@ -1,57 +1,44 @@
-# import threading
-# import time
-# import random
-# import sys
+import tkinter as tk
 
-# def spinner():
-#     """Spinner animation displayed while waiting."""
-#     characters = [
-#         '⣿', '⠿', '⠾', '⠽', '⠼', '⠻', '⠺', '⠹', '⠸', '⠷', 
-#         '⠶', '⠵', '⠴', '⠳', '⠲', '⠱', '⠰', '⠯', '⠮', '⠭', 
-#         '⠬', '⠫', '⠪', '⠩', '⠨', '⠧', '⠦', '⠥', '⠤', '⠣', 
-#         '⠢', '⠡', '⠠', '⠟', '⠞', '⠝', '⠜', '⠛', '⠚', '⠙', 
-#         '⠘', '⠗', '⠖', '⠕', '⠔', '⠓', '⠒', '⠑', '⠐', '⠏', 
-#         '⠎', '⠍', '⠌', '⠋', '⠊', '⠉', '⠈', '⠇', '⠆', '⠅', 
-#         '⠄', '⠃', '⠂'
-#     ]
-    
-#     while not stop_spinner_event.is_set():
-#         for char in characters:
-#             if stop_spinner_event.is_set():
-#                 break
-#             sys.stdout.write(f'\r{char}')
-#             sys.stdout.flush()
-#             time.sleep(0.5)  # Adjust the speed of the spinner
+root = tk.Tk()
+root.geometry(f"500x400+{int((1440-500)/2)}+{int((950-400)/2)}")
+root.title("Typing Effect")
 
-# def load_data(main_task):
-#     """Simulates loading data from the internet."""
-#     time.sleep(random.uniform(2, 5))  # Simulate variable loading time
-#     result = main_task()  # Call the main task
-#     print(f"\nData loaded: {result}")
 
-# def main(main_task):
-#     global stop_spinner_event
-#     stop_spinner_event = threading.Event()  # Event to control spinner
-    
-#     # Start the spinner in a separate thread
-#     spinner_thread = threading.Thread(target=spinner)
-#     spinner_thread.start()
-    
-#     load_data(main_task)  # Load the data
-    
-#     stop_spinner_event.set()  # Stop the spinner
-#     spinner_thread.join()  # Wait for the spinner thread to finish
-#     print("Done!")
+# txt = "Fuck you all motherfuckers"
+txt = '''Jupyter Notebooks:
 
-# # Example main task function
-# def example_task():
-#     return "This is the result of the main task."
+In the data science community, using Jupyter notebooks with %autoreload is a common workaround for achieving something close to hot reloading in an interactive environment. This doesn’t apply to Tkinter GUIs, but it’s a frequently used approach in Python development for rapid feedback.
+A fully stable and comprehensive hot-reloading solution specifically for Tkinter does not yet exist as a mainstream package. This is partly because Python and Tkinter’s architecture make it challenging to implement in a way that is both smooth and cross-platform.
 
-# # Run the main function with the example task
-# if __name__ == "__main__":
-#     main(example_task)
+Building a dedicated module for hot reloading in Tkinter would be quite innovative and could fill a gap in Python GUI development. If you package it, refine it, and share it with the community, it could attract contributors or even evolve into a tool widely used by other Tkinter developers.
 
 
 
 
-print(len("the quick brown fox jumped over the lazy dog. or did it. guess we will now"))
+'''
+text = ''
+count = 0
+
+label = tk.Label(root, text=txt, font=('Times New Roman', 20, 'bold'), wraplength=700, justify='left', background='red')
+label.pack(expand=True)
+
+
+def slider(label):
+    global count, text
+
+    if count >= len(txt):
+        count -=1
+        label.config(text=text)
+
+    else:
+        text += txt[count]
+        label.config(text=text)
+    count += 1
+    label.after(100, lambda label = label :slider(label))
+
+
+slider(label)
+
+
+root.mainloop()
