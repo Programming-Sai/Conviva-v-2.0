@@ -10,16 +10,22 @@ import tkinter as tk
 from tkinter import PhotoImage
 import time
 from llm_processing import say
+from tkinterdnd2 import TkinterDnD, DND_ALL
+from pathlib import Path
 
 
 
 
-class GUI(ctk.CTk):
+
+
+class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def __init__(self):
+        # Initialize both parent classes
         super().__init__()
         ctk.set_appearance_mode('dark')
         self.title('Conviva 2.0')
         self.size = (900, 620)
+
           
 
         self.purple_palette = [
@@ -40,11 +46,41 @@ class GUI(ctk.CTk):
             "#0D001A"   # Almost Black Purple
         ]
 
+        self.file_type_colors = {
+            'txt': 'blue',
+            'md': 'gray',
+            'png': 'blue',
+            'jpg': 'blue',
+            'jpeg': 'blue',
+            'pdf': 'red',
+            'doc': 'blue',
+            'docx': 'blue',
+            'xls': 'green',
+            'xlsx': 'green',
+            'ppt': 'purple',
+            'pptx': 'purple',
+            'mp3': 'yellow',
+            'wav': 'yellow',
+            'mp4': 'blue',
+            'avi': 'green',
+            'mkv': 'green',
+            'zip': 'green',
+            'rar': 'yellow',
+            'exe': 'red',
+            'bat': 'red',
+            'html': 'blue',
+            'htm': 'blue',
+            'py': 'green',
+            'js': 'blue',
+            'java': 'blue'
+        }
+
 
 
 
         self.current_page_index = 0
-        self.pages = [ self.text_chat, self.speech_chat, self.page_three, ]
+        self.file_tag = None
+        self.pages = [ self.text_chat, self.speech_chat, ]
 
 
 
@@ -73,6 +109,8 @@ class GUI(ctk.CTk):
 
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
+        self.bind("<Configure>", self.on_resize)
+
 
 
         self.mainloop()
@@ -183,6 +221,10 @@ class GUI(ctk.CTk):
 
         self.pulser = Pulser(self, self.speech_body, (self.purple_palette[1], self.purple_palette[1], self.purple_palette[1], self.purple_palette[1]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
 
+        self.pulser.drop_target_register(DND_ALL)
+        self.pulser.dnd_bind('<<Drop>>', self.handleDropEvent)
+
+        
         # Initialize widgets but don't pack them yet
         self.chatbar(self.speech_body)
 
@@ -203,6 +245,15 @@ class GUI(ctk.CTk):
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
 
+    def handleDropEvent(self, e, frame):
+        print("Data: ", e.data)
+        # self.file_tag.configure(text=Path(e.data).suffix.replace('.', '').upper(), fg_color=self.file_type_colors[Path(e.data).suffix.replace('.', '').replace('}', '')])
+
+        self.file_tag = ctk.CTkLabel(frame, font=('Arial', 16, 'bold'), text=Path(e.data).suffix.replace('.', '').upper(), fg_color=self.file_type_colors[Path(e.data).suffix.replace('.', '').replace('}', '')], width=50, height=70, corner_radius=20)
+
+        # TODO Add the logic to create the file tag when someone drops in the file
+
+
 
     def chatbar(self, frame):
         self.prompt = tk.StringVar()
@@ -210,13 +261,26 @@ class GUI(ctk.CTk):
         self.entry_widget = ctk.CTkEntry(frame, width=500, height=50, corner_radius=50, textvariable=self.prompt)
         self.textbox_widget = ctk.CTkTextbox(frame, width=500, height=100, corner_radius=10)
 
+
+        # if not self.file_tag:
+        #     self.file_tag = ctk.CTkLabel(frame, font=('Arial', 16, 'bold'), text='PNG', fg_color=self.file_type_colors['png'], width=50, height=70, corner_radius=20)
+        
+        # Pass screen size to place_file_tag
+        e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
+        self.place_file_tag(e)
+
         self.entry_widget.focus_set()
         self.textbox_widget.focus_set()
 
-        # Start with the entry widget
+
+        self.entry_widget.drop_target_register(DND_ALL)
+        self.textbox_widget.drop_target_register(DND_ALL)
+
+        self.entry_widget.dnd_bind('<<Drop>>', lambda frame= frame :self.handleDropEvent(frame))
+        self.textbox_widget.dnd_bind('<<Drop>>', lambda frame= frame :self.handleDropEvent(frame))
+
         self.entry_widget.pack(pady=20)
 
-        # Bind events
         if frame == self.speech_body:
             self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
             self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
@@ -229,6 +293,26 @@ class GUI(ctk.CTk):
             self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box_text)
             self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
             self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
+
+
+    def place_file_tag(self, e):
+        if self.file_tag:
+            width = e.width
+            height = e.height
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Check window size and reposition the label accordingly
+            if window_width == width or window_height == height:
+                self.file_tag.place(relx=0.28, rely=0.8)
+            else:
+                self.file_tag.place(relx=0.13, rely=0.8)
+
+    def on_resize(self, event):
+        # Reposition the file_tag when the window is resized
+        e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
+        self.place_file_tag(e)
+
 
 
     def toggle_prompt_box(self, e):
@@ -300,6 +384,11 @@ class GUI(ctk.CTk):
 
         self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[8])
         
+
+        self.scroll_frame.drop_target_register(DND_ALL)
+        self.scroll_frame.dnd_bind('<<Drop>>', self.handleDropEvent)
+
+
         tk.Frame(self.scroll_frame, height=50).pack(side='top')
         # self.scroll_frame_content()
         tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
@@ -313,7 +402,7 @@ class GUI(ctk.CTk):
 
         self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=100, height=100, fg_color=self.purple_palette[9])
 
-        self.button_frame.place(relx=.8, rely=.8)
+        self.button_frame.place(relx=.85, rely=.8)
         self.button_frame.pack_propagate(False) 
 
         self.button_frame.bind("<Button-1>", self.scroll_button_method)
@@ -431,15 +520,8 @@ class GUI(ctk.CTk):
         
 
 
-    def page_three(self):
-        self.label = tk.Label(self.page_frame, text='Page Three', background='green')
-        self.label.pack(fill='both', expand=True)
-        # self.page_frame.pack()
-
-       
-
     def nav_buttons(self):
-        for idx in range(3):
+        for idx in range(2):
             nav_button = ctk.CTkButton(
                 self.page_frame, 
                 text='Page ' + str(idx + 1), 
@@ -648,7 +730,10 @@ class Pulser(ctk.CTkFrame):
             print("Container no longer exists; unable to configure image.")
 
 
-
+class Size:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
 
 
 

@@ -82,16 +82,6 @@ class CLI(ag.ArgumentParser):
         # Subparsers for download options (audio/video download)
         download_subparser = youtube_parser.add_subparsers(dest='download', help='Download options for YouTube')
 
-        # Audio Download subparser
-        download_audio = download_subparser.add_parser('audio', help='Downloads audio', description="Downloads audio from the provided link.")
-        download_audio.add_argument('link', type=str, help='Link for the audio to download.')
-        download_audio.add_argument('-s', '--speed', type=self.validate_speed, default=1.0, help="The speed of the audio to download.")
-
-        # Video Download subparser
-        download_video = download_subparser.add_parser('video', help='Downloads video', description="Downloads video from the provided link.")
-        download_video.add_argument('link', type=str, help='Link for the video to download.')
-        download_video.add_argument('-e', '--extension', type=self.validate_extension, default=1.0, help="This specifies the file type of the video to downlaod.")
-
         # This argument is used for opening a video without downloading
         show_video = download_subparser.add_parser('show', help='Opens the video on Youtube', description="Opens the video on Youtube")
         show_video.add_argument('video_name', type=str, help='Name Of the video to open.')
@@ -158,21 +148,7 @@ class CLI(ag.ArgumentParser):
                 else:
                     print("Error: No link provided to open a website.")    
             elif args.command == 'youtube':
-                # Handle audio download
-                if args.download == 'audio':
-                    if args.link:
-                        YoutubeDownloader(False, lambda: "").download_audio(args.link, speed=args.speed)
-                    else:
-                        print("Error: No link provided for audio download.")
-                
-                # Handle video download
-                elif args.download == 'video':
-                    if args.link:
-                        YoutubeDownloader(False, lambda: "").download_video(args.link, file_type=args.extension)
-                    else:
-                        print("Error: No link provided for video download.")
-                
-                elif args.download == 'show':
+                if args.download == 'show':
                     if args.video_name:
                         play_video(args.video_name)  
                         print(f'{args.video_name} Opened on YouTube')
