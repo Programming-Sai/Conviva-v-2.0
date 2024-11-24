@@ -7,7 +7,7 @@ import random
 import subprocess
 import threading
 import tkinter as tk
-from tkinter import PhotoImage
+from tkinter import PhotoImage, TclError
 import time
 from llm_processing import say
 from tkinterdnd2 import TkinterDnD, DND_ALL
@@ -25,8 +25,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         ctk.set_appearance_mode('dark')
         self.title('Conviva 2.0')
         self.size = (900, 620)
-
-          
 
         self.purple_palette = [
             "#E6E6FA",  # Lavender
@@ -75,26 +73,19 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             'java': 'blue'
         }
 
-
-
-
         self.current_page_index = 0
         self.file_tag = None
-        self.pages = [ self.text_chat, self.speech_chat, ]
-
-
+        self.pages = [ self.speech_chat, self.text_chat, ]
 
         # Define Some Other shades Of Purple.
 
         self.geometry(f"{self.size[0]}x{self.size[1]}+{int(self.winfo_screenwidth()/2)-int(self.size[0]/2)}+{int(self.winfo_screenheight()/2)-int(self.size[1]/2)-50}")
        
-
         self.page_frame = tk.Frame(self)
         
         self.speech_chat_frame = tk.Frame(self.page_frame)
         self.main_speech_content = tk.Frame(self.speech_chat_frame, )
         self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[1])
-
 
         self.text_chat_frame = tk.Frame(self.page_frame)
         self.main_text_content = tk.Frame(self.text_chat_frame, )
@@ -102,16 +93,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.load_page()
         
-        
-
-
-        
-
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
-
-
 
         self.mainloop()
 
@@ -124,38 +108,26 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.page_frame.pack(fill='both', expand=True)
         self.nav_buttons()
 
-
-
     def clear_page(self, frame):
         for child in frame.winfo_children():
             child.destroy()
 
-
-
-
     def speech_chat(self):
-        self.speech_chat_frame = tk.Frame(self.page_frame)
-        
-        self.side_panel_creator(self.speech_chat_frame)
-        self.main_speech_content = tk.Frame(self.speech_chat_frame, )
-
-        self.main_speech_content_content()
-        self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
-
-
-
-        self.speech_chat_frame.pack(fill='both', expand=True)
-
-       
+        try:
+            self.speech_chat_frame = tk.Frame(self.page_frame)
+            self.side_panel_creator(self.speech_chat_frame)
+            self.main_speech_content = tk.Frame(self.speech_chat_frame, )
+            self.main_speech_content_content()
+            self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+            self.speech_chat_frame.pack(fill='both', expand=True)
+        except:
+            print("Not In Existance (Speech Chat)")
 
     def side_panel_creator(self, frame):
         self.side_panel_visible = True
         self.side_panel = tk.Frame(frame)
         self.side_panel_content()
         self.side_panel.place(x=0, y=0, relheight=1.0)
-
-
-
 
     def toggle_side_panel(self, e):
         if self.side_panel_visible:
@@ -230,7 +202,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
 
-
     def topbar(self, frame):
         self.menu_image = ctk.CTkImage(
             dark_image=Image.open("Images/Menu.png"), 
@@ -245,13 +216,40 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
 
-    def handleDropEvent(self, e, frame):
-        print("Data: ", e.data)
-        # self.file_tag.configure(text=Path(e.data).suffix.replace('.', '').upper(), fg_color=self.file_type_colors[Path(e.data).suffix.replace('.', '').replace('}', '')])
 
-        self.file_tag = ctk.CTkLabel(frame, font=('Arial', 16, 'bold'), text=Path(e.data).suffix.replace('.', '').upper(), fg_color=self.file_type_colors[Path(e.data).suffix.replace('.', '').replace('}', '')], width=50, height=70, corner_radius=20)
 
-        # TODO Add the logic to create the file tag when someone drops in the file
+
+    def handleDropEvent(self, e):
+        frame = e.widget  
+        data = e.data.strip("{}")
+        file_extension = Path(data).suffix.replace('.', '').upper()
+        # Determine the label color based on file type
+        color = self.file_type_colors.get(file_extension.lower(), 'gray')  # Default to gray if not found
+        try:
+            if not self.file_tag or not self.file_tag.winfo_exists():  # Create the label if it doesn't exist
+                self.file_tag = ctk.CTkLabel(
+                    self.speech_body if self.speech_body.winfo_exists() else self.text_body if self.text_body.winfo_exists() else frame,  # Or the relevant parent frame
+                    font=('Arial Black', 16, 'bold'),
+                    width=50,
+                    height=70,
+                    corner_radius=20,
+                    text=file_extension,
+                    fg_color=color
+                )
+            else:
+                # Update existing label content and color
+                self.file_tag.configure(text=file_extension, fg_color=color)
+            # Ensure the label is visible
+            self.file_tag.lift()  # Bring the label to the top
+            self.file_tag.bind("<Button-1>", lambda e : self.file_tag.place_forget())
+            self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
+        except TclError as error:
+            print(f"Error handling drop event: {error}")
+
+
+
+        
+
 
 
 
@@ -262,22 +260,14 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.textbox_widget = ctk.CTkTextbox(frame, width=500, height=100, corner_radius=10)
 
 
-        # if not self.file_tag:
-        #     self.file_tag = ctk.CTkLabel(frame, font=('Arial', 16, 'bold'), text='PNG', fg_color=self.file_type_colors['png'], width=50, height=70, corner_radius=20)
-        
-        # Pass screen size to place_file_tag
-        e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
-        self.place_file_tag(e)
-
         self.entry_widget.focus_set()
         self.textbox_widget.focus_set()
-
 
         self.entry_widget.drop_target_register(DND_ALL)
         self.textbox_widget.drop_target_register(DND_ALL)
 
-        self.entry_widget.dnd_bind('<<Drop>>', lambda frame= frame :self.handleDropEvent(frame))
-        self.textbox_widget.dnd_bind('<<Drop>>', lambda frame= frame :self.handleDropEvent(frame))
+        self.entry_widget.dnd_bind('<<Drop>>', lambda e : self.handleDropEvent(e))
+        self.textbox_widget.dnd_bind('<<Drop>>', lambda e : self.handleDropEvent(e))
 
         self.entry_widget.pack(pady=20)
 
@@ -295,13 +285,18 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
 
 
+
+
+
+
+
+
     def place_file_tag(self, e):
-        if self.file_tag:
+        if self.file_tag and self.file_tag.winfo_exists():
             width = e.width
             height = e.height
             window_width = self.winfo_width()
             window_height = self.winfo_height()
-
             # Check window size and reposition the label accordingly
             if window_width == width or window_height == height:
                 self.file_tag.place(relx=0.28, rely=0.8)
@@ -337,13 +332,14 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.pack(pady=20)
 
 
+
+
+
     def toggle_main_menu_button(self):
         if self.main_menu_button_visible:
             self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0) 
         else:
             self.maintoggle_button.place_forget()
-
-
 
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
@@ -358,23 +354,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
-        print(self.user_prompt)
-
 
     def text_chat(self):
-        self.text_chat_frame = tk.Frame(self.page_frame)
-        
-        self.side_panel_creator(self.text_chat_frame)
-
-        self.main_text_content = tk.Frame(self.text_chat_frame, )
-        
-        self.main_text_content_content()
-        self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
-
-
-
-        self.text_chat_frame.pack(fill='both', expand=True)
-
+        try:
+            self.text_chat_frame = tk.Frame(self.page_frame)
+            self.side_panel_creator(self.text_chat_frame)
+            self.main_text_content = tk.Frame(self.text_chat_frame, )
+            self.main_text_content_content()
+            self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+            self.text_chat_frame.pack(fill='both', expand=True)
+        except:
+            print("Not In Existance (Text Chat)")
 
     def main_text_content_content(self):
         self.topbar(self.main_text_content)
@@ -400,20 +390,18 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.chatbar(self.text_body)
 
-        self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=100, height=100, fg_color=self.purple_palette[9])
+        self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=60, height=60, fg_color=self.purple_palette[9])
 
         self.button_frame.place(relx=.85, rely=.8)
         self.button_frame.pack_propagate(False) 
 
         self.button_frame.bind("<Button-1>", self.scroll_button_method)
 
-        self.scroll_button = ctk.CTkButton(self.button_frame, text="▲", font=("Segoe UI Symbol", 24), width=0, height=100, fg_color=self.purple_palette[9], hover_color=self.purple_palette[9], command=self.scroll_button_method)
+        self.scroll_button = ctk.CTkButton(self.button_frame, text="▲", font=("Segoe UI Symbol", 24), width=0, height=60, fg_color=self.purple_palette[9], hover_color=self.purple_palette[9], command=self.scroll_button_method)
         self.scroll_button.pack()
 
         self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
         
-
-
     def scroll_frame_content(self):
         tk.Frame(self.scroll_frame, height=50).pack()
         for i in range(30):
@@ -423,9 +411,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             else:
                 label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         tk.Frame(self.scroll_frame, height=50).pack()
-
-
-    
+ 
     def get_prompt_from_text_box_text(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
@@ -440,24 +426,43 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
 
-        ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5)).pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+        input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
+        input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         
         
         response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
         response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
+
+        input_label.bind("<Double-1>", self.copy_text)
+        response_label.bind("<Double-1>", self.copy_text)
+
         # Initialize the state for this label
         response_label.typing_state = {
-        "text": "",  # Current text in the label
-        "count": 0,  # Index of the character to add next
-        "prompt": self.user_prompt  # Store the prompt specifically for this label
-    }
+            "text": "",  # Current text in the label
+            "count": 0,  # Index of the character to add next
+            "prompt": self.user_prompt  # Store the prompt specifically for this label
+        }
         
         self.slider(response_label)
 
 
         
         self.auto_scroll_to_end()
+
+    def copy_text(self, e):
+        widget = e.widget
+        text_to_copy = ""
+
+        # Check if the widget is a Label, Button, or other text-holding widget
+        if isinstance(widget, tk.Label):
+            text_to_copy = widget.cget("text")
+
+        self.clipboard_clear()
+        self.clipboard_append(text_to_copy)
+        print(f"Text Copied Successfully: ({text_to_copy})")
+        self.toast(f"Text Copied Successfully: ({text_to_copy})")
+
 
 
     def slider(self, label):
@@ -492,7 +497,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         # Call the slider function again after 100 ms for typing effect
         label.after(50, lambda: self.slider(label))
 
-
     def scroll_button_method(self, e=None):
         direction = self.scroll_button.cget('text')
         if direction == '▲':
@@ -502,24 +506,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.auto_scroll_to_end()
             self.scroll_button.configure(text = '▲')
 
-
-
     def auto_scroll_to_end(self):
         self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
         self.scroll_frame._parent_canvas.configure(yscrollcommand=self.scroll_frame._scrollbar.set, scrollregion=self.scroll_frame._parent_canvas.bbox('all'))
         self.scroll_frame._parent_canvas.yview_moveto(1.0)
 
-
-
     def scroll_to_top(self, event=None):
         self.scroll_frame._parent_canvas.yview_moveto(0.0)
-
 
     def wrap_length(self, rel_width):
         return rel_width * self.winfo_width()
         
-
-
     def nav_buttons(self):
         for idx in range(2):
             nav_button = ctk.CTkButton(
@@ -531,8 +528,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             )
             nav_button.pack(side='left', expand=True)
 
-
-
     def change_page(self, idx):
         self.clear_page(self.page_frame)
         self.set_current_page_index(idx)
@@ -540,11 +535,40 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.page_frame.pack(fill='both', expand=True)
         self.nav_buttons()
 
-
-
     def set_current_page_index(self, index):
         self.current_page_index = index
 
+    def toast(self, message, position="top"):
+        # Create a topmost window for the toast notification
+        toast_window = tk.Toplevel(self)
+        toast_window.overrideredirect(True)  # Remove window borders
+        
+        # Get screen width and height
+        window_width = self.winfo_width()
+        window_height = self.winfo_height()
+        window_x = self.winfo_x()
+        window_y = self.winfo_y()
+
+        # Calculate the X and Y position for top or bottom center relative to the main window
+        if position == "top":
+            x_pos = window_x + (window_width // 2) - 100  # Center horizontally
+            y_pos = window_y + 30  # Offset from the top of the window
+        elif position == "bottom":
+            x_pos = window_x + (window_width // 2) - 100  # Center horizontally
+            y_pos = window_y + window_height - 70  # Offset from the bottom of the window
+
+        # Set the geometry to position the window
+        toast_window.geometry(f"+{x_pos}+{y_pos}")
+        
+        # Set background color
+        toast_window.config(bg=self.purple_palette[4])
+
+        # Create a label widget for the message
+        toast_label = tk.Label(toast_window, text=message, bg=self.purple_palette[4], fg="white", font=("Arial", 12, "bold"), padx=10, pady=5)
+        toast_label.pack()
+
+        # Destroy the toast window after 2 seconds
+        self.after(2000, toast_window.destroy)
 
 
 class Pulser(ctk.CTkFrame):
@@ -727,7 +751,7 @@ class Pulser(ctk.CTkFrame):
             except tk.TclError as e:
                 print(f"TclError when configuring image: {e}")
         else:
-            print("Container no longer exists; unable to configure image.")
+            pass
 
 
 class Size:
