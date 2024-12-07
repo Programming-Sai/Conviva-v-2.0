@@ -12,7 +12,8 @@ import time
 from llm_processing import say
 from tkinterdnd2 import TkinterDnD, DND_ALL
 from pathlib import Path
-
+import json
+from datetime import datetime 
 
 
 
@@ -75,7 +76,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.current_page_index = 0
         self.file_tag = None
-        self.pages = [ self.speech_chat, self.text_chat, ]
+        self.pages = [ self.text_chat, self.speech_chat, ]
+        self.conversation = {}
+        self.current_conversation = ''
 
         # Define Some Other shades Of Purple.
 
@@ -96,6 +99,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
+
+        # self.conversation_modal()
 
         self.mainloop()
 
@@ -177,12 +182,43 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         conversations = ctk.CTkScrollableFrame(self.side_panel, fg_color=self.purple_palette[7])
 
-        for i in range(50):
-            tk.Label(conversations, text=str(i+1), background=self.purple_palette[9]).pack(fill='both', pady=10)
+        c = self.get_conversations()
+        for i in c:
+            text = i.rstrip(".json")[45:]
+            if text.startswith('.'):
+                continue
+            conversation = tk.Label(conversations, text=text, background=self.purple_palette[9], justify='left', anchor="w")
+            conversation.pack(fill='both', pady=15, ipady=10)
+            conversation.bind("<Button-1>", lambda e, path=i : self.open_conversation(e, path))
+            
 
+
+            context_menu = tk.Menu(conversation, tearoff=0)
+            context_menu.add_command(label="Open        ", command=lambda e, path=i : self.open_conversation(e, path))
+            context_menu.add_command(label="Edit        ", command=(lambda text = text: self.conversation_modal(text))(i))
+            context_menu.add_separator()
+            context_menu.add_command(label="Delete      ", foreground='red', command=(lambda text=text: self.delete_conversation(text))(i))
+
+            # TODO Fix lambda closures so that the current files are passed to the modal and delete functions
+            
+
+            
+            # context_menu.add_command(label="Open        ", command=partial(self.open_conversation, e=None, conversation_to_open=i))
+            # context_menu.add_command(label="Edit        ", command=partial(self.conversation_modal, current_conversation_title=text))
+            # context_menu.add_separator()
+            # context_menu.add_command(label="Delete      ", foreground='red', command=partial(self.delete_conversation, conversation_to_delete=text))
+            
+
+            conversation.bind("<Double-1>", lambda event: self.show_context_menu(event, context_menu))
+
+
+
+            
         tk.Frame(conversations, height=100, background=self.purple_palette[7]).pack(fill='both')
 
         conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
+
+
 
     def main_speech_content_content(self):
         # Load image and setup header
@@ -213,11 +249,112 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                                             fg_color=self.purple_palette[8], hover_color=self.purple_palette[7], 
                                             command=lambda e=None: self.toggle_side_panel(e))
         self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
+        
+        
+        self.conversation_title = tk.Label(header, text='Conversation Title', bg=self.purple_palette[8], font=('Arial Black', 16, 'bold'))
+        self.conversation_title.place(relx=1, rely=0, relwidth=0.5, relheight=1.0, anchor='ne')
+
+
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
 
+    def get_conversations(self):
+        walk_gen = os.walk("Conversations")
+        walk_list = list(walk_gen)
+        root = walk_list[0][0]
+        files = [os.path.join(root, i) for i in walk_list[0][2]] or []
+        return files
+
+    def open_conversation(self, e, conversation_to_open):
+        try:
+            with open(conversation_to_open, 'r') as file:
+                self.conversation = json.load(file)
+            self.current_conversation = conversation_to_open[45:].rstrip('.json')
+            self.conversation_title.configure(text=self.current_conversation)
+            self.get_conversation_content_for_text_chat()
+        except:
+            self.conversation = {}
 
 
+    def get_conversation_content_for_text_chat(self):
+        for item in self.scroll_frame.winfo_children():
+            item.destroy()
+
+        tk.Frame(self.scroll_frame, height=50).pack(side='top')
+
+        for i in range(len(self.conversation)):
+            if (
+                self.conversation[i]['role'] == 'system' 
+                # or self.conversation[i]['role'] == 'tool'
+            ):
+                continue
+            elif self.conversation[i]['role'] == 'user':
+                self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+            else:
+                self.response_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+        
+        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+        self.auto_scroll_to_end()
+
+    def show_context_menu(self, event, menu):
+        menu.post(event.x_root, event.y_root)
+
+
+    def delete_conversation(self, conversation_to_delete):
+        print(conversation_to_delete + " Deleted Successfully")
+        
+
+
+    def conversation_modal(self, current_conversation_title=""):
+        modal = tk.Toplevel(self)
+        modal.title("")
+        modal.size = (500,200)
+        modal.geometry(f"{modal.size[0]}x{modal.size[1]}+{int(modal.winfo_screenwidth()/2)-int(modal.size[0]/2)}+{int(modal.winfo_screenheight()/2)-int(modal.size[1]/2)-50}")
+
+        modal.configure(bg=self.purple_palette[4])
+        topFrame = tk.Frame(modal, background=self.purple_palette[9])
+        middleFrame = tk.Frame(modal, )
+        bottomFrame = tk.Frame(modal, background=self.purple_palette[10])
+
+        topFrame.place(relx=0, rely=0, relwidth=1, relheight=0.2)
+        middleFrame.place(relx=0, rely=0.2, relwidth=1, relheight=0.7)
+        bottomFrame.place(relx=0, rely=0.7, relwidth=1, relheight=0.3)
+
+
+        self.conversation_modal_title = ctk.CTkLabel(topFrame, text=current_conversation_title, fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='w')
+        self.conversation_modal_title.pack(fill='both', expand=True, padx=10, side='left')
+
+        
+        self.conversation_modal_date = ctk.CTkLabel(topFrame, text=datetime.now().strftime("%b %d, %Y"), fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='e')
+        self.conversation_modal_date.pack(fill='both', expand=True, padx=10, side='right')
+
+
+        self.conversation_modal_text_box = ctk.CTkTextbox(middleFrame, fg_color=self.purple_palette[9], border_color=self.purple_palette[9], )
+        self.textbox_placeholder("Enter Conversation Title Here...")
+        self.conversation_modal_text_box.pack(fill='both', expand=True)
+
+
+        self.conversation_modal_submit_button = ctk.CTkLabel(bottomFrame, text="Submit", fg_color=self.purple_palette[13], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center')
+        self.conversation_modal_submit_button.pack(fill='both', pady=10, padx=10, side='right')
+
+
+
+    def textbox_placeholder(self, placeholder_text):
+        self.conversation_modal_text_box.insert("1.0", placeholder_text)
+        
+        def clear_placeholder(event):
+            if self.conversation_modal_text_box.get("1.0", "end-1c") == placeholder_text:
+                self.conversation_modal_text_box.delete("1.0", "end")
+        
+        self.conversation_modal_text_box.bind("<FocusIn>", clear_placeholder)
+        
+        def set_placeholder(event):
+            if self.conversation_modal_text_box.get("1.0", "end-1c") == "":
+                self.conversation_modal_text_box.insert("1.0", placeholder_text)
+        
+        self.conversation_modal_text_box.bind("<FocusOut>", set_placeholder)
 
     def handleDropEvent(self, e):
         frame = e.widget  
@@ -245,13 +382,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
         except TclError as error:
             print(f"Error handling drop event: {error}")
-
-
-
-        
-
-
-
 
     def chatbar(self, frame):
         self.prompt = tk.StringVar()
@@ -284,13 +414,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
             self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
 
-
-
-
-
-
-
-
     def place_file_tag(self, e):
         if self.file_tag and self.file_tag.winfo_exists():
             width = e.width
@@ -307,8 +430,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         # Reposition the file_tag when the window is resized
         e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
         self.place_file_tag(e)
-
-
 
     def toggle_prompt_box(self, e):
         current_text = self.prompt.get()
@@ -330,10 +451,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.focus_set()
             self.prompt.set(current_textbox_content)  
             self.entry_widget.pack(pady=20)
-
-
-
-
 
     def toggle_main_menu_button(self):
         if self.main_menu_button_visible:
@@ -385,7 +502,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.scroll_frame.pack(fill='both', expand=True)
 
-        self.bind("<Command-j>", self.scroll_to_top)
+        self.bind("<Command-Up>", self.scroll_to_top)
+        self.bind("<Command-Down>", self.auto_scroll_to_end)
+        self.bind("<Control-Up>", self.scroll_to_top)
+        self.bind("<Control-Down>", self.auto_scroll_to_end)
 
 
         self.chatbar(self.text_body)
@@ -412,6 +532,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         tk.Frame(self.scroll_frame, height=50).pack()
  
+    
+
     def get_prompt_from_text_box_text(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
@@ -424,31 +546,26 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
 
-
-
-        input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
-        input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+        self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         
-        
-        response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
-        response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+        self.response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
-
-        input_label.bind("<Double-1>", self.copy_text)
-        response_label.bind("<Double-1>", self.copy_text)
+        self.input_label.bind("<Double-1>", self.copy_text)
+        self.response_label.bind("<Double-1>", self.copy_text)
 
         # Initialize the state for this label
-        response_label.typing_state = {
+        self.response_label.typing_state = {
             "text": "",  # Current text in the label
             "count": 0,  # Index of the character to add next
             "prompt": self.user_prompt  # Store the prompt specifically for this label
         }
         
-        self.slider(response_label)
-
-
-        
+        self.slider(self.response_label)
         self.auto_scroll_to_end()
+
+
 
     def copy_text(self, e):
         widget = e.widget
@@ -506,7 +623,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.auto_scroll_to_end()
             self.scroll_button.configure(text = '▲')
 
-    def auto_scroll_to_end(self):
+    def auto_scroll_to_end(self, e=None):
         self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
         self.scroll_frame._parent_canvas.configure(yscrollcommand=self.scroll_frame._scrollbar.set, scrollregion=self.scroll_frame._parent_canvas.bbox('all'))
         self.scroll_frame._parent_canvas.yview_moveto(1.0)
@@ -569,6 +686,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         # Destroy the toast window after 2 seconds
         self.after(2000, toast_window.destroy)
+
+
+    
+
+
+
+            
+
+
+
+
 
 
 class Pulser(ctk.CTkFrame):
@@ -674,7 +802,7 @@ class Pulser(ctk.CTkFrame):
         Returns:
             None
         """
-        gif_div_ctk = tk.Label(self, text='', bd=0, background='black')
+        gif_div_ctk = tk.Label(self, text='', background='black')
         # self._play_gif(gif_div_ctk, self._get_frames(os.path.join(os.getcwd(), 'Images', 'conviva-orb.gif')))
         self._play_gif(gif_div_ctk, self._get_frames('Images/GIF2.gif'))
         gif_div_ctk.pack(expand=True)
@@ -769,3 +897,8 @@ if __name__ == "__main__":
 
 
 # TODO when the app initally loads, it greets the user after some time of silence. that is for the ai page, where the glowing orb would be.
+# TODO Add Logic to create, edit and delete any conversation in the conversation menu.
+# TODO Link response label to ai response
+# TODO Make sure to save all input
+# TODO Finally start working on the functionality for the speech chat page.
+# TODO Work on reading files
