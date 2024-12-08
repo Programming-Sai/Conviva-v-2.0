@@ -9,7 +9,7 @@ import threading
 import tkinter as tk
 from tkinter import PhotoImage, TclError
 import time
-from llm_processing import say
+from llm_processing import say, ai_function_execution, available_functions, tools
 from tkinterdnd2 import TkinterDnD, DND_ALL
 from pathlib import Path
 import json
@@ -138,16 +138,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         if self.side_panel_visible:
             # Hide the side panel
             self.side_panel.place_configure(relwidth=0)
-
             if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
                 self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
             if self.main_text_content is not None and self.main_text_content.winfo_exists():
                 self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
-
             self.side_panel_visible = False
             self.main_menu_button_visible = True
             self.toggle_main_menu_button()
-
         else:
             # Show the side panel
             self.side_panel.place_configure(relwidth=0.25)
@@ -187,38 +184,45 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             text = i.rstrip(".json")[45:]
             if text.startswith('.'):
                 continue
-            conversation = tk.Label(conversations, text=text, background=self.purple_palette[9], justify='left', anchor="w")
-            conversation.pack(fill='both', pady=15, ipady=10)
-            conversation.bind("<Button-1>", lambda e, path=i : self.open_conversation(e, path))
-            
+            conversation = ctk.CTkLabel(conversations, text=text, fg_color=self.purple_palette[7], corner_radius=10, anchor="w")
+            conversation.pack(fill='both', pady=5, ipady=10, ipadx=10)
+           
 
-
+            conversation.bind("<Button-1>", self.create_callback(self.open_conversation, i))
+    
+            # Context menu setup
             context_menu = tk.Menu(conversation, tearoff=0)
-            context_menu.add_command(label="Open        ", command=lambda e, path=i : self.open_conversation(e, path))
-            context_menu.add_command(label="Edit        ", command=(lambda text = text: self.conversation_modal(text))(i))
+            context_menu.add_command(label="Open        ", command=self.create_callback(self.open_conversation, i))
+            context_menu.add_command(label="Edit        ", command=self.create_callback(self.conversation_modal, i))
             context_menu.add_separator()
-            context_menu.add_command(label="Delete      ", foreground='red', command=(lambda text=text: self.delete_conversation(text))(i))
+            context_menu.add_command(label="Delete      ", foreground='red', command=self.create_callback(self.delete_conversation, i))
 
-            # TODO Fix lambda closures so that the current files are passed to the modal and delete functions
-            
-
-            
-            # context_menu.add_command(label="Open        ", command=partial(self.open_conversation, e=None, conversation_to_open=i))
-            # context_menu.add_command(label="Edit        ", command=partial(self.conversation_modal, current_conversation_title=text))
-            # context_menu.add_separator()
-            # context_menu.add_command(label="Delete      ", foreground='red', command=partial(self.delete_conversation, conversation_to_delete=text))
-            
-
-            conversation.bind("<Double-1>", lambda event: self.show_context_menu(event, context_menu))
+            # Bind double click with closure
+            conversation.bind("<Double-1>", self.create_context_menu_callback(context_menu))
 
 
-
-            
         tk.Frame(conversations, height=100, background=self.purple_palette[7]).pack(fill='both')
 
         conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
 
 
+
+
+    def create_callback(self, func, arg):
+        def callback(*_):
+            func(arg)
+        return callback
+
+
+    def create_context_menu_callback(self, menu):
+        def callback(event):
+            self.show_context_menu(event, menu)
+        return callback
+
+
+
+
+  
 
     def main_speech_content_content(self):
         # Load image and setup header
@@ -265,7 +269,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         files = [os.path.join(root, i) for i in walk_list[0][2]] or []
         return files
 
-    def open_conversation(self, e, conversation_to_open):
+    def open_conversation(self, conversation_to_open, e=None ):
         try:
             with open(conversation_to_open, 'r') as file:
                 self.conversation = json.load(file)
@@ -307,7 +311,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         
 
 
-    def conversation_modal(self, current_conversation_title=""):
+    def conversation_modal(self, current_conversation_title_path=""):
         modal = tk.Toplevel(self)
         modal.title("")
         modal.size = (500,200)
@@ -321,6 +325,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         topFrame.place(relx=0, rely=0, relwidth=1, relheight=0.2)
         middleFrame.place(relx=0, rely=0.2, relwidth=1, relheight=0.7)
         bottomFrame.place(relx=0, rely=0.7, relwidth=1, relheight=0.3)
+
+        current_conversation_title = current_conversation_title_path[45:].rstrip('.json')
 
 
         self.conversation_modal_title = ctk.CTkLabel(topFrame, text=current_conversation_title, fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='w')
@@ -336,7 +342,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.conversation_modal_text_box.pack(fill='both', expand=True)
 
 
-        self.conversation_modal_submit_button = ctk.CTkLabel(bottomFrame, text="Submit", fg_color=self.purple_palette[13], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center')
+        self.conversation_modal_submit_button = ctk.CTkButton(bottomFrame, text="Submit", fg_color=self.purple_palette[13], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center')
         self.conversation_modal_submit_button.pack(fill='both', pady=10, padx=10, side='right')
 
 
@@ -534,6 +540,28 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
  
     
 
+
+
+    '''
+    def toggle_conversation(self):
+        a = ''
+        a.conversation.move_file = True
+        a.conversation.create_new_conversation()
+        print("New Conversation Should Start here!!!")
+        a.conversation.move_file = False
+
+        This is fortoggling conversations.
+        Also, in the conversations.py file there is a method switch_conversation. may be of help
+        When one clicks on any of the conversations to open it the hidden conversation text file is updated, with the selected option.
+        Also run the ai response on a different thread to make the app non-blocking.
+        also, add a file to persist the current conversatoin
+
+    '''
+
+    
+
+
+
     def get_prompt_from_text_box_text(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
@@ -557,9 +585,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         # Initialize the state for this label
         self.response_label.typing_state = {
-            "text": "",  # Current text in the label
-            "count": 0,  # Index of the character to add next
-            "prompt": self.user_prompt  # Store the prompt specifically for this label
+            "text": "",  
+            "count": 0,   
+
+            # "prompt": self.user_prompt  # Store the prompt specifically for this label
+            # "prompt": 'The House Is On fire'  # Store the prompt specifically for this label
+
+            "prompt": ai_function_execution(self.user_prompt, tools, available_functions)  
         }
         
         self.slider(self.response_label)
@@ -897,8 +929,6 @@ if __name__ == "__main__":
 
 
 # TODO when the app initally loads, it greets the user after some time of silence. that is for the ai page, where the glowing orb would be.
-# TODO Add Logic to create, edit and delete any conversation in the conversation menu.
-# TODO Link response label to ai response
-# TODO Make sure to save all input
+# TODO Add Logic to create, edit and delete any conversation in the conversation menu. ---TODO
 # TODO Finally start working on the functionality for the speech chat page.
 # TODO Work on reading files

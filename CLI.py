@@ -259,6 +259,7 @@ class CLI(ag.ArgumentParser):
             user_text = a.get_text_prompt()
             return user_text, user_text.split(' ')
         
+        
     def show_model_response(self, user_prompt, speech, text):
         response = ai_function_execution(user_prompt, tools, available_functions)
         if speech:
@@ -267,6 +268,8 @@ class CLI(ag.ArgumentParser):
             print(x.color("\nConviva: ", x.GREEN), end="")
             self.print_response(""+x.color(response, x.YELLOW)+"\n")
    
+
+
     def start_conversation(self, speech, text):
         print(x.center_block_text(x.random_color(title)))
         while True:
@@ -374,4 +377,3 @@ if __name__ == '__main__':
 # TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in flux. when it is done, it stops adding that extra string.
 # TODO Check on how to atart and stop a thread. OR you can write a function to handle that for you.
 # TODO Find out how to do websrcapping without showing your ip address (i think it is called proxy something.)
-# TODO Are groq and langchain the same thing or type of thisg?

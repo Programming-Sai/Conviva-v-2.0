@@ -96,7 +96,7 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 a = AI_Utilties()
 x = AsciiColors()
 
-
+ 
 def ai_sound_analysis_external(prompt, sound):
 
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))

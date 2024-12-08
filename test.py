@@ -1,9 +1,19 @@
-import os
-def get_conversations():
-        walk_gen = os.walk("Conversations")
-        walk_list = list(walk_gen)
-        root = walk_list[0][0]
-        files = [os.path.join(root, i) for i in walk_list[0][2]] or []
-        return files
+from llm_processing import say, ai_function_execution, available_functions, tools
 
-print('hellow'[25:])
+
+user_prompt = input(">> ")
+
+# First attempt
+
+r = ai_function_execution(user_prompt, tools, available_functions)
+print(r)
+
+
+# Second attempt
+def show_model_response(user_prompt, speech, text):
+        response = ai_function_execution(user_prompt, tools, available_functions)
+        
+        print(response)
+   
+
+# show_model_response(user_prompt, False, True)
