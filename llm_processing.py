@@ -27,9 +27,9 @@ m = AsciiColors()
 class AI_Utilties:
     
 
-    def __init__(self):
+    def __init__(self, conversation=None):
         self.client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-        self.models = [
+        self.models_deprecated = [
             "llava-v1.5-7b-4096-preview", 
             'llama3-groq-70b-8192-tool-use-preview',
             'llama3-groq-8b-8192-tool-use-preview', 
@@ -37,8 +37,15 @@ class AI_Utilties:
             "llama3-8b-8192", 
             "distil-whisper-large-v3-en"
         ]
+
+        self.models = [
+            'llama-3.3-70b-versatile',
+            'llama-3.2-11b-vision-preview',
+            "distil-whisper-large-v3-en",
+        ]
         
-        self.conversation = Conversation(self.cli_title_function)
+        
+        self.conversation = conversation if conversation is not None else Conversation(self.cli_title_function)
 
         
     def get_text_prompt(self):
@@ -97,7 +104,7 @@ a = AI_Utilties()
 x = AsciiColors()
 
  
-def ai_sound_analysis_external(prompt, sound):
+def ai_sound_analysis_external(prompt, sound, utilities_class):
 
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     # filename = os.path.dirname(__file__) + sound 
@@ -108,7 +115,8 @@ def ai_sound_analysis_external(prompt, sound):
         try:
             transcription = client.audio.transcriptions.create(
                 file=(filename, file.read()), # Required audio file
-                model=a.models[5], # Required model to use for transcription
+                # model=utilities_class.models[5], # Required model to use for transcription
+                model=utilities_class.models[2], # Required model to use for transcription
                 response_format="json",  # Optional
                 language="en",  # Optional
                 temperature=0.0  # Optional
@@ -116,7 +124,7 @@ def ai_sound_analysis_external(prompt, sound):
         
 
             completion = client.chat.completions.create(
-            model=a.models[3],
+            model=utilities_class.models[3],
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{prompt}"}
@@ -131,12 +139,14 @@ def ai_sound_analysis_external(prompt, sound):
             return ""
        
 
-def ai_chat_external(prompt):
+def ai_chat_external(prompt, utilities_class):
+    print(utilities_class.conversation.conversation_histor)
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         completion = client.chat.completions.create(
-        model=a.models[3],
-        messages=a.conversation.conversation_history,
+        model=utilities_class.models[0],
+        # model=utilities_class.models[3],
+        messages=utilities_class.conversation.conversation_history,
             temperature=1,
             max_tokens=1024,
             top_p=1,
@@ -146,13 +156,13 @@ def ai_chat_external(prompt):
         response = ''
 
         for chunk in completion:
-            response += chunk.choices[0].delta.content or ""
-        a.conversation.append_to_history('assistant', response)
+            response += chunk.choices[0].deltutilities_class.content or ""
+        utilities_class.conversation.append_to_history('assistant', response)
         return response
     except:
         return ""
 
-def ai_image_analysis_external(prompt, image):
+def ai_image_analysis_external(prompt, image, utilities_class):
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         chat_completion = client.chat.completions.create(
@@ -164,27 +174,28 @@ def ai_image_analysis_external(prompt, image):
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": image if a.is_url(image) else f"data:image/jpeg;base64,{a.encode_image(image)}" if a.is_file_path(image) else "",
+                                "url": image if utilities_class.is_url(image) else f"data:image/jpeg;base64,{utilities_class.encode_image(image)}" if utilities_class.is_file_path(image) else "",
                             },
                         },
                     ],
                 }
             ],
-            model=a.models[0],
+            model=utilities_class.models[1],
+            # model=utilities_class.models[0],
         )
 
         return chat_completion.choices[0].message.content
     except:
         return ""
 
-def ai_chat(prompt):
-    return ai_chat_external(prompt)
+def ai_chat(prompt, utilities_class):
+    return ai_chat_external(prompt, utilities_class)
 
-def ai_image_analysis(prompt, image):
-    return ai_image_analysis_external(prompt, image)
+def ai_image_analysis(prompt, image, utilities_class):
+    return ai_image_analysis_external(prompt, image, utilities_class)
 
-def ai_sound_analysis(prompt, sound):
-    return ai_sound_analysis_external(prompt, sound)
+def ai_sound_analysis(prompt, sound, utilities_class):
+    return ai_sound_analysis_external(prompt, sound, utilities_class)
 
 
 
@@ -262,16 +273,16 @@ def say(speak: bool, text: str, voice: str = 'Daniel') -> str:
 
 
 
-def ai_function_execution(prompt, tools, available_functions):
+def ai_function_execution(prompt, tools, available_functions, utilities_class):
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
        
-        a.conversation.append_to_history("user", prompt)
+        utilities_class.conversation.append_to_history("user", prompt)
         
         # First Response
         response = client.chat.completions.create(
-            model=a.models[1],
-            messages=a.conversation.conversation_history,
+            model=utilities_class.models[1],
+            messages=utilities_class.conversation.conversation_history,
             tools=tools,
             tool_choice="auto",
             max_tokens=4096
@@ -287,22 +298,25 @@ def ai_function_execution(prompt, tools, available_functions):
                 function_to_call = available_functions.get(function_name)
                 function_args = json.loads(tool_call.function.arguments) if tool_call.function.arguments else {}
                 
+                if function_name in ['ai_image_analysis', 'ai_sound_analysis']:  
+                    function_args['utilities_class'] = utilities_class 
+
                 try:
                     function_response = function_to_call(**function_args)
-                    a.conversation.append_to_history("tool", function_response, tool_call_id=tool_call.id, function_name=function_name)
+                    utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=tool_call.id, function_name=function_name)
                 except Exception as e:
                     print(f"Error calling {function_name}: {e}")
                 
             # Return Second Response
             second_response = client.chat.completions.create(
-                model=a.models[1],
-                messages=a.conversation.conversation_history
+                model=utilities_class.models[1],
+                messages=utilities_class.conversation.conversation_history
             )
-            a.conversation.append_to_history("assistant", second_response.choices[0].message.content)
+            utilities_class.conversation.append_to_history("assistant", second_response.choices[0].message.content)
             return second_response.choices[0].message.content
         else:
             # print("No tool calls found.")
-            return ai_chat(prompt)
+            return ai_chat(prompt, utilities_class)
     except APIConnectionError as e:
         print(f"API connection error: {e}")
     except Exception as e:

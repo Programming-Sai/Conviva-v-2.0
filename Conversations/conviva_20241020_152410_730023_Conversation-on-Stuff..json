@@ -382,5 +382,37 @@
     {
         "role": "assistant",
         "content": "As of my knowledge cutoff, the President of Ghana is Nana Akufo-Addo. However, please note that information can change over time, and I may not always have the most up-to-date information."
+    },
+    {
+        "role": "user",
+        "content": "k"
+    },
+    {
+        "role": "user",
+        "content": "l"
+    },
+    {
+        "role": "user",
+        "content": "h"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "user",
+        "content": "hello"
+    },
+    {
+        "role": "user",
+        "content": "what is the current time?"
+    },
+    {
+        "role": "user",
+        "content": ""
+    },
+    {
+        "role": "user",
+        "content": "hello there. "
     }
 ]

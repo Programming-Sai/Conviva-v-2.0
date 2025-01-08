@@ -9,11 +9,12 @@ import threading
 import tkinter as tk
 from tkinter import PhotoImage, TclError
 import time
-from llm_processing import say, ai_function_execution, available_functions, tools
+from llm_processing import *
 from tkinterdnd2 import TkinterDnD, DND_ALL
 from pathlib import Path
 import json
 from datetime import datetime 
+from tkinter import messagebox
 
 
 
@@ -73,10 +74,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             'js': 'blue',
             'java': 'blue'
         }
+        
+        self.utilities = AI_Utilties(Conversation(self.gui_title_function))
+
 
         self.current_page_index = 0
         self.file_tag = None
-        self.pages = [ self.text_chat, self.speech_chat, ]
+        self.pages = [  self.text_chat, self.speech_chat,]
         self.conversation = {}
         self.current_conversation = ''
 
@@ -102,11 +106,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         # self.conversation_modal()
 
+        # self.color_palette()
+
         self.mainloop()
 
 
-
-
+   
 
     def load_page(self):
         self.pages[self.current_page_index]()
@@ -156,6 +161,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.main_menu_button_visible = False
             self.toggle_main_menu_button()
 
+
     def side_panel_content(self):
         self.menu_image = ctk.CTkImage(
             dark_image=Image.open("Images/Menu.png"), 
@@ -167,24 +173,35 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             light_image=Image.open("Images/NewConversation.png") 
         )
 
-        header = tk.Frame(self.side_panel, background=self.purple_palette[8])
+        header = tk.Frame(self.side_panel, background=self.purple_palette[13])
 
-        toggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, fg_color=self.purple_palette[8], hover_color=self.purple_palette[7], command=lambda e=None :self.toggle_side_panel(e))
+        toggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=lambda e=None :self.toggle_side_panel(e))
         toggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
 
-        new_conversation = ctk.CTkButton(header, text='', image=self.new_conversation_image, width=100, fg_color=self.purple_palette[8], hover_color=self.purple_palette[7],)
+        new_conversation = ctk.CTkButton(header, text='', image=self.new_conversation_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=self.toggle_conversation)
         new_conversation.place(relx=1, rely=0, relwidth=0.3, relheight=1.0, anchor='ne')
 
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
-        conversations = ctk.CTkScrollableFrame(self.side_panel, fg_color=self.purple_palette[7])
+        self.conversations = ctk.CTkScrollableFrame(self.side_panel, fg_color=self.purple_palette[6])
+
+        self.place_conversations_list()
+
+        self.conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
+
+
+    def place_conversations_list(self):
+        for widget in self.conversations.winfo_children():
+            widget.destroy()
 
         c = self.get_conversations()
+        
+
         for i in c:
-            text = i.rstrip(".json")[45:]
+            text = i.replace(".json", "")[45:]
             if text.startswith('.'):
                 continue
-            conversation = ctk.CTkLabel(conversations, text=text, fg_color=self.purple_palette[7], corner_radius=10, anchor="w")
+            conversation = ctk.CTkLabel(self.conversations, text=text.replace("-", " "), fg_color=self.purple_palette[6], corner_radius=10, anchor="w")
             conversation.pack(fill='both', pady=5, ipady=10, ipadx=10)
            
 
@@ -193,24 +210,21 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             # Context menu setup
             context_menu = tk.Menu(conversation, tearoff=0)
             context_menu.add_command(label="Open        ", command=self.create_callback(self.open_conversation, i))
-            context_menu.add_command(label="Edit        ", command=self.create_callback(self.conversation_modal, i))
+            context_menu.add_command(label="Edit        ", command=self.create_callback(self.conversation_modal, True, i))
             context_menu.add_separator()
-            context_menu.add_command(label="Delete      ", foreground='red', command=self.create_callback(self.delete_conversation, i))
+            context_menu.add_command(label="Delete      ", foreground='red', command=self.create_callback(self.delete_conversation, i, c))
 
             # Bind double click with closure
             conversation.bind("<Double-1>", self.create_context_menu_callback(context_menu))
 
 
-        tk.Frame(conversations, height=100, background=self.purple_palette[7]).pack(fill='both')
-
-        conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
+        tk.Frame(self.conversations, height=100, background=self.purple_palette[6]).pack(fill='both')
 
 
 
-
-    def create_callback(self, func, arg):
+    def create_callback(self, func, *args):
         def callback(*_):
-            func(arg)
+            func(*args)
         return callback
 
 
@@ -229,9 +243,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.topbar(self.main_speech_content)
 
         # Setup body
-        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[1])
+        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[13])
 
-        self.pulser = Pulser(self, self.speech_body, (self.purple_palette[1], self.purple_palette[1], self.purple_palette[1], self.purple_palette[1]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
+        self.pulser = Pulser(self, self.speech_body, (self.purple_palette[13], self.purple_palette[13], self.purple_palette[13], self.purple_palette[13]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
 
         self.pulser.drop_target_register(DND_ALL)
         self.pulser.dnd_bind('<<Drop>>', self.handleDropEvent)
@@ -242,20 +256,23 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
 
+
+
+
     def topbar(self, frame):
         self.menu_image = ctk.CTkImage(
             dark_image=Image.open("Images/Menu.png"), 
             light_image=Image.open("Images/Menu.png")
         )
 
-        header = tk.Frame(frame, background=self.purple_palette[10])
+        header = tk.Frame(frame, background=self.purple_palette[13])
         self.maintoggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, 
-                                            fg_color=self.purple_palette[8], hover_color=self.purple_palette[7], 
+                                            fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], 
                                             command=lambda e=None: self.toggle_side_panel(e))
         self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
         
         
-        self.conversation_title = tk.Label(header, text='Conversation Title', bg=self.purple_palette[8], font=('Arial Black', 16, 'bold'))
+        self.conversation_title = tk.Label(header, text='', bg=self.purple_palette[13], font=('Arial Black', 16, 'bold'))
         self.conversation_title.place(relx=1, rely=0, relwidth=0.5, relheight=1.0, anchor='ne')
 
 
@@ -267,14 +284,25 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         walk_list = list(walk_gen)
         root = walk_list[0][0]
         files = [os.path.join(root, i) for i in walk_list[0][2]] or []
-        return files
+        sorted_files = sorted(files, key=lambda x: self.extract_timestamp(x), reverse=True)
+        return sorted_files
+
+    
+    def extract_timestamp(self, file_name):
+        copy = file_name.replace("Conversations/", "")
+        if copy.startswith("."):
+            return ""
+        return copy.split('_')[1] + "_" + copy.split('_')[2] + "_" + copy.split('_')[3]
+
+
 
     def open_conversation(self, conversation_to_open, e=None ):
         try:
             with open(conversation_to_open, 'r') as file:
-                self.conversation = json.load(file)
-            self.current_conversation = conversation_to_open[45:].rstrip('.json')
-            self.conversation_title.configure(text=self.current_conversation)
+                self.utilities.conversation.conversation_history = json.load(file)
+                print(self.utilities.conversation.conversation_history)
+            self.current_conversation = conversation_to_open[45:].replace('.json', "")
+            self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
             self.get_conversation_content_for_text_chat()
         except:
             self.conversation = {}
@@ -293,10 +321,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             ):
                 continue
             elif self.conversation[i]['role'] == 'user':
-                self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
                 self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
             else:
-                self.response_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.response_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color=self.purple_palette[6], corner_radius=10, wraplength=self.wrap_length(0.5))
                 self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
         
         tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
@@ -306,27 +334,49 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         menu.post(event.x_root, event.y_root)
 
 
-    def delete_conversation(self, conversation_to_delete):
-        print(conversation_to_delete + " Deleted Successfully")
+    def delete_conversation(self, conversation_to_delete, conversations):
+        response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this file?")
+        if response:
+            try:
+                os.remove(conversation_to_delete)
+                conversations.remove(conversation_to_delete)
+                with open("Conversations/.current_conversation_file_name.txt", 'w') as w:
+                    w.write(conversations[0])
+                print(conversation_to_delete + " Deleted Successfully")
+                self.place_conversations_list()
+                self.scroll_frame_content()
+            except Exception as e:
+                messagebox.showerror(f"Error: {e}")
+
         
 
+    def gui_title_function(self):
+        title = None
+        def title_callback(input_title):
+            nonlocal title
+            title = input_title
 
-    def conversation_modal(self, current_conversation_title_path=""):
-        modal = tk.Toplevel(self)
-        modal.title("")
-        modal.size = (500,200)
-        modal.geometry(f"{modal.size[0]}x{modal.size[1]}+{int(modal.winfo_screenwidth()/2)-int(modal.size[0]/2)}+{int(modal.winfo_screenheight()/2)-int(modal.size[1]/2)-50}")
+        self.conversation_modal(callback=title_callback)  
+        self.modal.wait_window()
+        return title
 
-        modal.configure(bg=self.purple_palette[4])
-        topFrame = tk.Frame(modal, background=self.purple_palette[9])
-        middleFrame = tk.Frame(modal, )
-        bottomFrame = tk.Frame(modal, background=self.purple_palette[10])
+
+    def conversation_modal(self, edit=False, current_conversation_title_path="", callback=None):
+        self.modal = tk.Toplevel(self)
+        self.modal.title("")
+        self.modal.size = (500,200)
+        self.modal.geometry(f"{self.modal.size[0]}x{self.modal.size[1]}+{int(self.modal.winfo_screenwidth()/2)-int(self.modal.size[0]/2)}+{int(self.modal.winfo_screenheight()/2)-int(self.modal.size[1]/2)-50}")
+
+        self.modal.configure(bg=self.purple_palette[4])
+        topFrame = tk.Frame(self.modal, background=self.purple_palette[9])
+        middleFrame = tk.Frame(self.modal, )
+        bottomFrame = tk.Frame(self.modal, background=self.purple_palette[10])
 
         topFrame.place(relx=0, rely=0, relwidth=1, relheight=0.2)
         middleFrame.place(relx=0, rely=0.2, relwidth=1, relheight=0.7)
         bottomFrame.place(relx=0, rely=0.7, relwidth=1, relheight=0.3)
 
-        current_conversation_title = current_conversation_title_path[45:].rstrip('.json')
+        current_conversation_title = current_conversation_title_path.replace('.json', "")[45:] if not edit else "New Conversation Title"
 
 
         self.conversation_modal_title = ctk.CTkLabel(topFrame, text=current_conversation_title, fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='w')
@@ -342,8 +392,32 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.conversation_modal_text_box.pack(fill='both', expand=True)
 
 
-        self.conversation_modal_submit_button = ctk.CTkButton(bottomFrame, text="Submit", fg_color=self.purple_palette[13], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center')
+        self.conversation_modal_submit_button = ctk.CTkButton(bottomFrame, text="Submit", fg_color=self.purple_palette[13], hover_color=self.purple_palette[12], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center', command=lambda: self.get_title_from_modal(edit, callback, current_conversation_title_path))
         self.conversation_modal_submit_button.pack(fill='both', pady=10, padx=10, side='right')
+        
+
+    def get_title_from_modal(self, edit, callback, current_conversation_title_path=""):
+        title = self.conversation_modal_text_box.get(0.0, "end").strip()
+        if title and edit:
+            self.edit_title(title, current_conversation_title_path)
+        if title and callback is not None:
+            callback(title.replace(" ", "-"))
+            print("New Title:", title)
+        self.modal.destroy()
+
+    def edit_title(self, title, current_conversation_title_path):
+        path_title = current_conversation_title_path.replace("Conversations/", "").split("_")[-1].replace(".json", "")
+        new_title_path = current_conversation_title_path.replace(path_title, title.replace(" ", "-"))
+        os.rename(current_conversation_title_path, new_title_path)
+
+        with open("Conversations/.current_conversation_file_name.txt", 'r+') as rw:
+            curr = rw.read()
+            if curr == current_conversation_title_path:
+                rw.seek(0)
+                rw.write(new_title_path)
+                rw.truncate()
+        self.place_conversations_list()
+        self.scroll_frame_content()
 
 
 
@@ -493,17 +567,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.topbar(self.main_text_content)
 
         # Setup body
-        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[8])
+        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[13])
 
-        self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[8])
+        self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[13])
         
 
         self.scroll_frame.drop_target_register(DND_ALL)
         self.scroll_frame.dnd_bind('<<Drop>>', self.handleDropEvent)
 
 
-        tk.Frame(self.scroll_frame, height=50).pack(side='top')
-        # self.scroll_frame_content()
+        tk.Frame(self.scroll_frame, height=50, bg=self.purple_palette[13]).pack(side='top')
+        self.scroll_frame_content()
         tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
 
         self.scroll_frame.pack(fill='both', expand=True)
@@ -529,34 +603,31 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
         
     def scroll_frame_content(self):
-        tk.Frame(self.scroll_frame, height=50).pack()
-        for i in range(30):
-            label = ctk.CTkLabel(self.scroll_frame, text='Test' + str(i), fg_color='red', corner_radius=10)
-            if i % 2 == 0:
-                label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w')  
-            else:
-                label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
-        tk.Frame(self.scroll_frame, height=50).pack()
+        try:
+            with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
+                current_file = f.read()
+            self.open_conversation(conversation_to_open=current_file)
+        except:
+            pass
  
     
 
 
 
-    '''
     def toggle_conversation(self):
-        a = ''
-        a.conversation.move_file = True
-        a.conversation.create_new_conversation()
+        self.utilities.conversation.move_file = True
+        self.utilities.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
-        a.conversation.move_file = False
+        self.utilities.conversation.move_file = False
+        self.place_conversations_list()
+        self.scroll_frame_content()
 
-        This is fortoggling conversations.
-        Also, in the conversations.py file there is a method switch_conversation. may be of help
-        When one clicks on any of the conversations to open it the hidden conversation text file is updated, with the selected option.
-        Also run the ai response on a different thread to make the app non-blocking.
-        also, add a file to persist the current conversatoin
+        # This is for toggling conversations.
+        # Also, in the conversations.py file there is a method switch_conversation. may be of help
+        # When one clicks on any of the conversations to open it the hidden conversation text file is updated, with the selected option.
+        # Also run the ai response on a different thread to make the app non-blocking.
+        # also, add a file to persist the current conversatoin
 
-    '''
 
     
 
@@ -574,10 +645,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
 
-        self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color='red', corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
         self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         
-        self.response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color='blue', corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color=self.purple_palette[6], corner_radius=10, wraplength=self.wrap_length(0.5))
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
         self.input_label.bind("<Double-1>", self.copy_text)
@@ -587,11 +658,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.response_label.typing_state = {
             "text": "",  
             "count": 0,   
-
-            # "prompt": self.user_prompt  # Store the prompt specifically for this label
-            # "prompt": 'The House Is On fire'  # Store the prompt specifically for this label
-
-            "prompt": ai_function_execution(self.user_prompt, tools, available_functions)  
+            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities)   # TODO Fix it so that when one changes a conversation it actually changes the context and conversation history to match the new one.``
         }
         
         self.slider(self.response_label)
@@ -721,6 +788,24 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
     
+
+    def color_palette(self):
+        # Create a topmost window for the toast notification
+        toast_window = tk.Toplevel(self)
+
+        toast_window.geometry("400x400+300+300")
+        
+
+        # Create a label widget for the message
+
+        sk = ctk.CTkScrollableFrame(toast_window)
+
+        for idx, i in enumerate(self.purple_palette):
+            toast_label = tk.Label(sk, text=f"Color {i}, Index {idx}", bg=i, fg="white", font=("Arial", 12, "bold"), padx=10, pady=20, )
+            toast_label.pack(fill='both')
+        sk.pack(fill="both", expand=True)
+
+
 
 
 
@@ -932,3 +1017,5 @@ if __name__ == "__main__":
 # TODO Add Logic to create, edit and delete any conversation in the conversation menu. ---TODO
 # TODO Finally start working on the functionality for the speech chat page.
 # TODO Work on reading files
+# TODO Also, work on making it possible to scrape sites asynchronously and return the data.
+# TODO Add a mechanism to handle low or bad internet connectivity.

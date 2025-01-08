@@ -36,12 +36,15 @@ title = r"""
 """
 
 
-a = AI_Utilties()
-x = AsciiColors()
 
+ 
 class CLI(ag.ArgumentParser):
     def __init__(self):
         super().__init__(description="This command-line interface (CLI) tool offers a range of functionalities, including mathematical calculations, date and time retrieval, web browsing, audio and video downloading from YouTube, and AI-powered features such as chat and media analysis. Users can perform actions like taking screenshots, locking the screen, managing system volume, and more through straightforward commands and options. The program supports both speech and text interactions for an engaging user experience.")  
+
+
+        self.utilities = AI_Utilties(Conversation(self.cli_title_function))
+        self.ascii_colors = AsciiColors()
 
         self.subparsers = self.add_subparsers(dest='command', required=False, parser_class=ag.ArgumentParser)
 
@@ -51,6 +54,9 @@ class CLI(ag.ArgumentParser):
         self.add_arguments()
         self.process_args()
    
+    def cli_title_function(self):
+        return input('Please what would you like to name this conversation?  ').replace(' ', '-').replace('_', '-')
+
     def add_arguments(self):
 
         # Standalone Commands
@@ -171,11 +177,11 @@ class CLI(ag.ArgumentParser):
                         if args.create_conversation:
                             self.toggle_conversation()
                         elif args.switch_conversation:
-                            success  = a.conversation.switch_conversation(args.switch_conversation)
+                            success  = self.utilities.conversation.switch_conversation(args.switch_conversation)
                             if success == 'Failed':
-                                print(f'Sorry {x.color(args.switch_conversation, x.ITALIC)} does not exist')
+                                print(f'Sorry {self.ascii_colors.color(args.switch_conversation, self.ascii_colors.ITALIC)} does not exist')
                             else:
-                                print(f'Conversation Switched From {x.color(a.conversation.current_file_name, x.ITALIC)} to {x.color(args.switch_conversation, x.ITALIC)} Successfully')
+                                print(f'Conversation Switched From {self.ascii_colors.color(self.utilities.conversation.current_file_name, self.ascii_colors.ITALIC)} to {self.ascii_colors.color(args.switch_conversation, self.ascii_colors.ITALIC)} Successfully')
                         elif args.list_conversation:
                             self.list_conversations()
                         else:
@@ -215,7 +221,7 @@ class CLI(ag.ArgumentParser):
             return None
 
     def print_all_help(self):
-        print(x.center_block_text(x.random_color(title)))
+        print(self.ascii_colors.center_block_text(self.ascii_colors.random_color(title)))
         print('\n\n', self.format_help())
         print("\nAvailable commands and options:")
         for action in self._actions:
@@ -253,10 +259,10 @@ class CLI(ag.ArgumentParser):
 
     def get_user_input(self, speech, text):
         if speech:
-            user_speech = a.get_speech_prompt()
+            user_speech = self.utilities.get_speech_prompt()
             return user_speech, user_speech.split(' ')
         elif text:
-            user_text = a.get_text_prompt()
+            user_text = self.utilities.get_text_prompt()
             return user_text, user_text.split(' ')
         
         
@@ -265,13 +271,13 @@ class CLI(ag.ArgumentParser):
         if speech:
             say(speech, response or "Nothing in response")
         else:
-            print(x.color("\nConviva: ", x.GREEN), end="")
-            self.print_response(""+x.color(response, x.YELLOW)+"\n")
+            print(self.ascii_colors.color("\nConviva: ", self.ascii_colors.GREEN), end="")
+            self.print_response(""+self.ascii_colors.color(response, self.ascii_colors.YELLOW)+"\n")
    
 
 
     def start_conversation(self, speech, text):
-        print(x.center_block_text(x.random_color(title)))
+        print(self.ascii_colors.center_block_text(self.ascii_colors.random_color(title)))
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
             if user_prompt.lower() in ['x', 'exit']:
@@ -329,10 +335,10 @@ class CLI(ag.ArgumentParser):
         input_thread.join()  # Wait for the input thread to finish
 
     def toggle_conversation(self):
-        a.conversation.move_file = True
-        a.conversation.create_new_conversation()
+        self.utilities.conversation.move_file = True
+        self.utilities.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
-        a.conversation.move_file = False
+        self.utilities.conversation.move_file = False
 
     def spinner(self):
         """Spinner animation displayed while waiting."""
@@ -359,7 +365,7 @@ class CLI(ag.ArgumentParser):
                 time.sleep(0.5) 
 
     def list_conversations(self):
-        history = a.conversation.list_conversation_histories()
+        history = self.utilities.conversation.list_conversation_histories()
         headers = ['No.', 'ID', "File", 'Title']
         print(tabulate(history, headers=headers, stralign="center", numalign="center", tablefmt="pipe"))
 
@@ -374,6 +380,6 @@ if __name__ == '__main__':
 
 # TODO Make it so that one can select -lc, or the others also without specifying the interaction mode.
 # TODO Modify code so that it run on Windows as well.
-# TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in flux. when it is done, it stops adding that extra string.
+# TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in fluself.ascii_colors. when it is done, it stops adding that extra string.
 # TODO Check on how to atart and stop a thread. OR you can write a function to handle that for you.
 # TODO Find out how to do websrcapping without showing your ip address (i think it is called proxy something.)
