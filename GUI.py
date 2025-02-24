@@ -103,9 +103,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
-        self.bind("<Command-f>", lambda event: self.attributes('-fullscreen', not full_screen))
-        self.bind("<Control-f>", lambda event: self.attributes('-fullscreen', not full_screen))
+        self.full_screen = False  # Track fullscreen state
 
+        self.bind("<Command-f>", self.toggle_fullscreen)
+        self.bind("<Control-f>", self.toggle_fullscreen)
+
+    
         # self.conversation_modal()
 
         # self.color_palette()
@@ -123,6 +126,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.modal.wait_window()
         return title
 
+    def toggle_fullscreen(self, event=None):
+        self.full_screen = not self.full_screen
+        self.attributes('-fullscreen', self.full_screen)
 
     def load_page(self):
         self.pages[self.current_page_index]()
