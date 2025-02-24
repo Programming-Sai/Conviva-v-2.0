@@ -314,11 +314,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
     def open_conversation(self, conversation_to_open, e=None ):
-        print("Current_File", conversation_to_open)
         try:
             with open("Conversations/.current_conversation_file_name.txt", 'w') as f:
                 f.write(conversation_to_open)
-                print('Switching Current File in hidden State Tracker')
 
             with open(conversation_to_open, 'r') as file:
                 self.utilities.conversation.conversation_history = json.load(file)
@@ -328,6 +326,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.current_conversation = conversation_to_open[45:].replace('.json', "")
             self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
             self.get_conversation_content_for_text_chat()
+            self.auto_scroll_to_end()
         except:
             self.conversation = {}
 
@@ -348,11 +347,26 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
                 self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
             else:
-                self.response_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color=self.purple_palette[6], corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.response_label = ctk.CTkTextbox(
+                    self.scroll_frame,
+                    wrap="word",  # Similar to wraplength
+                    fg_color=self.purple_palette[6],  # Background color
+                    corner_radius=10,  # Rounded corners
+                    font=("Arial", 14),  # Set font to match label style
+                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
+                    height=5,  # Set height dynamically as needed
+                )
+
+                self.response_label.configure(state="normal")
+                self.response_label.insert("1.0", self.conversation[i]['content'])
+                self.response_label.configure(state="disabled") 
+                self.adjust_textbox_height(self.response_label)
                 self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
-        
-        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+
+                
         self.auto_scroll_to_end()
+        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+
 
     def show_context_menu(self, event, menu):
         menu.post(event.x_root, event.y_root)
@@ -366,7 +380,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 conversations.remove(conversation_to_delete)
                 with open("Conversations/.current_conversation_file_name.txt", 'w') as w:
                     w.write(conversations[0])
-                print(conversation_to_delete + " Deleted Successfully")
+                # print(conversation_to_delete + " Deleted Successfully")
                 self.place_conversations_list()
                 self.scroll_frame_content()
             except Exception as e:
@@ -378,9 +392,23 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
     def conversation_modal(self, edit=False, current_conversation_title_path="", callback=None):
         self.modal = tk.Toplevel(self)
+        # Ensure it does not go fullscreen
+        self.modal.withdraw()  # Hide the window while setting properties
+        self.modal.attributes('-fullscreen', False)  
+        self.modal.overrideredirect(False)  # Ensure normal window behavior
+        
+        # Make the modal the active window
+        self.modal.grab_set()
         self.modal.title("")
-        self.modal.size = (500,200)
-        self.modal.geometry(f"{self.modal.size[0]}x{self.modal.size[1]}+{int(self.modal.winfo_screenwidth()/2)-int(self.modal.size[0]/2)}+{int(self.modal.winfo_screenheight()/2)-int(self.modal.size[1]/2)-50}")
+        
+        # Set size and center it
+        width, height = 500, 200
+        x_pos = (self.modal.winfo_screenwidth() // 2) - (width // 2)
+        y_pos = (self.modal.winfo_screenheight() // 2) - (height // 2) - 50
+        self.modal.geometry(f"{width}x{height}+{x_pos}+{y_pos}")
+
+        # Show the modal after applying fixes
+        self.modal.deiconify()
 
         self.modal.configure(bg=self.purple_palette[4])
         topFrame = tk.Frame(self.modal, background=self.purple_palette[9])
@@ -593,7 +621,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         tk.Frame(self.scroll_frame, height=50, bg=self.purple_palette[13]).pack(side='top')
         self.scroll_frame_content()
-        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+        # tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
 
         self.scroll_frame.pack(fill='both', expand=True)
 
@@ -663,7 +691,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
         self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         
-        self.response_label = ctk.CTkLabel(self.scroll_frame, text='', justify='left', fg_color=self.purple_palette[6], corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.response_label = ctk.CTkTextbox(
+            self.scroll_frame,
+            wrap="word",  # Similar to wraplength
+            fg_color=self.purple_palette[6],  # Background color
+            corner_radius=10,  # Rounded corners
+            font=("Arial", 14),  # Set font to match label style
+            width=int(self.wrap_length(0.5)),  # Match previous wrap length
+            height=5,  # Set height dynamically as needed
+        )
+
+        self.response_label.configure(state="disabled")
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
         self.input_label.bind("<Double-1>", self.copy_text)
@@ -674,7 +712,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.response_label.typing_state = {
             "text": "",  
             "count": 0,   
-            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities) 
+            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities) ,
+            "running": True
         }
         
         self.slider(self.response_label)
@@ -690,12 +729,21 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         if isinstance(widget, tk.Label):
             text_to_copy = widget.cget("text")
 
-        self.clipboard_clear()
-        self.clipboard_append(text_to_copy)
-        print(f"Text Copied Successfully: ({text_to_copy})")
-        self.toast(f"Text Copied Successfully: ({text_to_copy})")
+        if text_to_copy.strip():  # Prevent copying empty text
+            self.clipboard_clear()
+            self.clipboard_append(text_to_copy)
+            self.update_idletasks()  # Ensure clipboard is updated
 
+            print(f"Text Copied Successfully: ({text_to_copy})")
+            self.toast(f"Text Copied Successfully: ({text_to_copy})")
 
+            # Ensure clipboard stays after app loses focus
+            self.after(100, lambda: self.clipboard_append(text_to_copy))
+
+    def stop_slider(self, label):
+        """Stop the animation completely."""
+        if hasattr(label, "typing_state"):
+            label.typing_state["running"] = False
 
     def slider(self, label):
         typing_state = getattr(label, "typing_state", None)
@@ -705,7 +753,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             typing_state = {
                 "text": "",
                 "count": 0,
-                "prompt": ""  # Add an empty prompt as a fallback
+                "prompt": "" , 
+                "running": True
             }
             label.typing_state = typing_state
         
@@ -713,21 +762,42 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         text = typing_state["text"]
         count = typing_state["count"]
         user_prompt = typing_state["prompt"]  # Retrieve the specific prompt for this label
+
+        if not typing_state["running"]:
+            return  # Exit function if animation is stopped
+
+
+        # **Check if user is selecting text (stop animation if so)**
+        if label.tag_ranges("sel"):  # 'sel' is the tag for selected text in Text widgets
+            label.after(50, lambda: self.slider(label))
+            return  # Stop updating while selection is active
         
         # If all characters have been added, stop the effect
         if count >= len(user_prompt) and user_prompt:
-            label.configure(text=user_prompt)  # Display the full text
-        else:
-            # Add the next character to the label
-            text += user_prompt[count]
-            label.configure(text=text)
+            label.configure(state="normal")  # Enable editing
+            label.delete("1.0", "end")  # Clear previous text
+            label.insert("1.0", user_prompt)  # Insert full text
+            self.adjust_textbox_height(label)
+            label.configure(state="disabled")  
+            typing_state["running"] = False  # **Stop further calls**
+            return  # **Exit function**
+
+        # Add the next character
+        label.configure(state="normal")  # Enable editing
+        label.insert("end", user_prompt[count])  # Append new character
+        self.adjust_textbox_height(label)
+        label.configure(state="disabled")  
+        typing_state["running"] = False  # **Stop further calls**
 
        # Update the state for the next call
         typing_state["count"] += 1
         typing_state["text"] = text
-
+        self.adjust_textbox_height(label)
         # Call the slider function again after 100 ms for typing effect
-        label.after(50, lambda: self.slider(label))
+        if typing_state["running"]:
+            label.after(50, lambda: self.slider(label))
+
+
 
     def scroll_button_method(self, e=None):
         direction = self.scroll_button.cget('text')
@@ -737,6 +807,43 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         else:
             self.auto_scroll_to_end()
             self.scroll_button.configure(text = '▲')
+
+
+
+    def adjust_textbox_height(self, textbox):
+        """Dynamically resize the textbox height based on its content, like a Label."""
+        text_content = textbox.get("1.0", "end").strip()
+
+        if not text_content:
+            textbox.configure(height=1)
+            return
+
+        # Get the pixel width of the textbox
+        textbox_width = textbox.winfo_width()  
+
+        if textbox_width == 1:  # Sometimes width is 1 before rendering, so skip
+            textbox.after(10, lambda: self.adjust_textbox_height(textbox))
+            return
+
+        # Estimate character width using font size (assuming monospaced font)
+        char_width = 7  # Adjust based on actual font width in pixels
+        max_chars_per_line = textbox_width // char_width
+
+        # Count how many lines the text will take up
+        lines = 0
+        for paragraph in text_content.split("\n"):
+            lines += max(1, -(-len(paragraph) // max_chars_per_line))  # Ceiling division
+
+        # Approximate line height
+        line_height = 18  # Depends on font size
+        padding = 0  # Extra space
+
+        new_height = ((lines * line_height) + padding) 
+        new_height -= (0.1 * new_height)
+        textbox.configure(height=new_height)
+
+
+
 
     def auto_scroll_to_end(self, e=None):
         self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
@@ -773,31 +880,40 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def toast(self, message, position="top"):
         # Create a topmost window for the toast notification
         toast_window = tk.Toplevel(self)
+        toast_window.attributes('-fullscreen', False)
+        toast_window.grab_set()
         toast_window.overrideredirect(True)  # Remove window borders
-        
-        # Get screen width and height
+
+        # Set a temporary position to allow proper size calculation
+        toast_window.geometry("+0+0")
+
+        # Create a label widget for the message
+        toast_label = tk.Label(
+            toast_window, text=message, bg=self.purple_palette[4], fg="white",
+            font=("Arial", 12, "bold"), padx=10, pady=5
+        )
+        toast_label.pack()
+
+        # Update to get actual dimensions
+        toast_window.update_idletasks()  # Forces geometry recalculation
+        toast_width = toast_window.winfo_width()
+        toast_height = toast_window.winfo_height()
+
+        # Get main window position & size
         window_width = self.winfo_width()
         window_height = self.winfo_height()
         window_x = self.winfo_x()
         window_y = self.winfo_y()
 
-        # Calculate the X and Y position for top or bottom center relative to the main window
+        # Recalculate centered position
+        x_pos = window_x + (window_width // 2) - (toast_width // 2)
         if position == "top":
-            x_pos = window_x + (window_width // 2) - 100  # Center horizontally
-            y_pos = window_y + 30  # Offset from the top of the window
-        elif position == "bottom":
-            x_pos = window_x + (window_width // 2) - 100  # Center horizontally
-            y_pos = window_y + window_height - 70  # Offset from the bottom of the window
+            y_pos = window_y + 30  # Offset from top
+        else:  # Bottom
+            y_pos = window_y + window_height - toast_height - 30  # Offset from bottom
 
-        # Set the geometry to position the window
-        toast_window.geometry(f"+{x_pos}+{y_pos}")
-        
-        # Set background color
-        toast_window.config(bg=self.purple_palette[4])
-
-        # Create a label widget for the message
-        toast_label = tk.Label(toast_window, text=message, bg=self.purple_palette[4], fg="white", font=("Arial", 12, "bold"), padx=10, pady=5)
-        toast_label.pack()
+        # Apply final position
+        toast_window.geometry(f"{toast_width}x{toast_height}+{x_pos}+{y_pos}")
 
         # Destroy the toast window after 2 seconds
         self.after(2000, toast_window.destroy)
@@ -808,6 +924,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def color_palette(self):
         # Create a topmost window for the toast notification
         toast_window = tk.Toplevel(self)
+        toast_window.attributes('-fullscreen', False)  
+        toast_window.grab_set()
 
         toast_window.geometry("400x400+300+300")
         

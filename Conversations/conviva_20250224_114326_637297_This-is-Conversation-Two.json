@@ -10,5 +10,29 @@
     {
         "role": "user",
         "content": "This is a new conversation"
+    },
+    {
+        "role": "user",
+        "content": "is it?"
+    },
+    {
+        "role": "assistant",
+        "content": "Indeed it is. Shall we begin afresh, then? How may I assist you today?"
+    },
+    {
+        "role": "user",
+        "content": "what have we been discussing all this time?"
+    },
+    {
+        "role": "assistant",
+        "content": "We haven't discussed anything previously, Master Isaiah. This conversation just started, and we're beginning from scratch. What's on your mind today?"
+    },
+    {
+        "role": "user",
+        "content": "no what is the first thing i said here?"
+    },
+    {
+        "role": "assistant",
+        "content": "Your first message was simply \"hi there\"."
     }
 ]
