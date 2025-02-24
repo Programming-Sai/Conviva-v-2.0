@@ -27,7 +27,7 @@ m = AsciiColors()
 class AI_Utilties:
     
 
-    def __init__(self, conversation=None):
+    def __init__(self, title_function, conversation=None):
         self.client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         self.models_deprecated = [
             "llava-v1.5-7b-4096-preview", 
@@ -45,7 +45,7 @@ class AI_Utilties:
         ]
         
         
-        self.conversation = conversation if conversation is not None else Conversation(self.cli_title_function)
+        self.conversation = conversation if conversation is not None else Conversation(title_function)
 
         
     def get_text_prompt(self):
@@ -86,9 +86,7 @@ class AI_Utilties:
         # Check if it is not a URL and matches file path patterns
         return not self.is_url(string) and (self.is_windows_path(string) or self.is_unix_path(string))
 
-    def cli_title_function(self):
-        return input('Please what would you like to name this conversation?  ').replace(' ', '-').replace('_', '-')
-
+    
 '''
 Set up the STT for the cli so it looks nice and easy to use.  and also set up an interrupt mechanism so that speech can be cut when not needed.
 
@@ -100,7 +98,7 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 
 
 
-a = AI_Utilties()
+# a = AI_Utilties()
 x = AsciiColors()
 
  
@@ -139,8 +137,7 @@ def ai_sound_analysis_external(prompt, sound, utilities_class):
             return ""
        
 
-def ai_chat_external(prompt, utilities_class):
-    print(utilities_class.conversation.conversation_histor)
+def ai_chat_external(utilities_class):
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         completion = client.chat.completions.create(
@@ -156,11 +153,11 @@ def ai_chat_external(prompt, utilities_class):
         response = ''
 
         for chunk in completion:
-            response += chunk.choices[0].deltutilities_class.content or ""
+            response += chunk.choices[0].delta.content or ""
         utilities_class.conversation.append_to_history('assistant', response)
         return response
-    except:
-        return ""
+    except Exception as e:
+        return f"Some Thing Unexpected Happened: {e}"
 
 def ai_image_analysis_external(prompt, image, utilities_class):
     try:
@@ -188,8 +185,8 @@ def ai_image_analysis_external(prompt, image, utilities_class):
     except:
         return ""
 
-def ai_chat(prompt, utilities_class):
-    return ai_chat_external(prompt, utilities_class)
+def ai_chat(utilities_class):
+    return ai_chat_external(utilities_class)
 
 def ai_image_analysis(prompt, image, utilities_class):
     return ai_image_analysis_external(prompt, image, utilities_class)
@@ -315,8 +312,7 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class):
             utilities_class.conversation.append_to_history("assistant", second_response.choices[0].message.content)
             return second_response.choices[0].message.content
         else:
-            # print("No tool calls found.")
-            return ai_chat(prompt, utilities_class)
+            return ai_chat(utilities_class)
     except APIConnectionError as e:
         print(f"API connection error: {e}")
     except Exception as e:

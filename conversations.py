@@ -42,7 +42,7 @@ class Conversation:
         return f"{prefix}_{filename}.{extension}"
 
     def append_to_history(self, role, content, tool_call_id=None, function_name=None):
-        print("AM IN CONVERSATIONS.PY", json.dumps(self.conversation_history, indent=4))
+        # print("AM IN CONVERSATIONS.PY", json.dumps(self.conversation_history, indent=4))
 
         file_name = self.current_file_name
         conversation = self.conversation_history

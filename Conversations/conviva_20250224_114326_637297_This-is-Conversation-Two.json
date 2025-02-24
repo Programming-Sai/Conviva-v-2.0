@@ -5,22 +5,10 @@
     },
     {
         "role": "user",
-        "content": "demjin"
+        "content": "hi there"
     },
     {
         "role": "user",
-        "content": "nina zenik"
-    },
-    {
-        "role": "user",
-        "content": "Mathews"
-    },
-    {
-        "role": "user",
-        "content": "Kaz"
-    },
-    {
-        "role": "user",
-        "content": "Inez"
+        "content": "This is a new conversation"
     }
 ]

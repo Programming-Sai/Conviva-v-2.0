@@ -75,7 +75,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             'java': 'blue'
         }
         
-        self.utilities = AI_Utilties(Conversation(self.gui_title_function))
+        self.utilities = AI_Utilties(self.gui_title_function ,Conversation(self.gui_title_function))
 
 
         self.current_page_index = 0
@@ -99,10 +99,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[8])
 
         self.load_page()
-        
+        full_screen=False
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
+        self.bind("<Command-f>", lambda event: self.attributes('-fullscreen', not full_screen))
+        self.bind("<Control-f>", lambda event: self.attributes('-fullscreen', not full_screen))
 
         # self.conversation_modal()
 
@@ -111,7 +113,16 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.mainloop()
 
 
-   
+    def gui_title_function(self):
+        title = None
+        def title_callback(input_title):
+            nonlocal title
+            title = input_title
+
+        self.conversation_modal(callback=title_callback)  
+        self.modal.wait_window()
+        return title
+
 
     def load_page(self):
         self.pages[self.current_page_index]()
@@ -297,10 +308,17 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
     def open_conversation(self, conversation_to_open, e=None ):
+        print("Current_File", conversation_to_open)
         try:
+            with open("Conversations/.current_conversation_file_name.txt", 'w') as f:
+                f.write(conversation_to_open)
+                print('Switching Current File in hidden State Tracker')
+
             with open(conversation_to_open, 'r') as file:
                 self.utilities.conversation.conversation_history = json.load(file)
-                print(self.utilities.conversation.conversation_history)
+                self.conversation = self.utilities.conversation.conversation_history
+                # print(json.dumps(self.utilities.conversation.conversation_history, indent=4))
+            
             self.current_conversation = conversation_to_open[45:].replace('.json', "")
             self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
             self.get_conversation_content_for_text_chat()
@@ -311,13 +329,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def get_conversation_content_for_text_chat(self):
         for item in self.scroll_frame.winfo_children():
             item.destroy()
+        
 
         tk.Frame(self.scroll_frame, height=50).pack(side='top')
-
         for i in range(len(self.conversation)):
             if (
                 self.conversation[i]['role'] == 'system' 
-                # or self.conversation[i]['role'] == 'tool'
+                or self.conversation[i]['role'] == 'tool'
             ):
                 continue
             elif self.conversation[i]['role'] == 'user':
@@ -350,16 +368,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         
 
-    def gui_title_function(self):
-        title = None
-        def title_callback(input_title):
-            nonlocal title
-            title = input_title
-
-        self.conversation_modal(callback=title_callback)  
-        self.modal.wait_window()
-        return title
-
+    
 
     def conversation_modal(self, edit=False, current_conversation_title_path="", callback=None):
         self.modal = tk.Toplevel(self)
@@ -654,11 +663,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.input_label.bind("<Double-1>", self.copy_text)
         self.response_label.bind("<Double-1>", self.copy_text)
 
+
         # Initialize the state for this label
         self.response_label.typing_state = {
             "text": "",  
             "count": 0,   
-            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities)   # TODO Fix it so that when one changes a conversation it actually changes the context and conversation history to match the new one.``
+            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities) 
         }
         
         self.slider(self.response_label)
@@ -699,7 +709,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         user_prompt = typing_state["prompt"]  # Retrieve the specific prompt for this label
         
         # If all characters have been added, stop the effect
-        if count >= len(user_prompt):
+        if count >= len(user_prompt) and user_prompt:
             label.configure(text=user_prompt)  # Display the full text
         else:
             # Add the next character to the label

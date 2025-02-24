@@ -43,7 +43,7 @@ class CLI(ag.ArgumentParser):
         super().__init__(description="This command-line interface (CLI) tool offers a range of functionalities, including mathematical calculations, date and time retrieval, web browsing, audio and video downloading from YouTube, and AI-powered features such as chat and media analysis. Users can perform actions like taking screenshots, locking the screen, managing system volume, and more through straightforward commands and options. The program supports both speech and text interactions for an engaging user experience.")  
 
 
-        self.utilities = AI_Utilties(Conversation(self.cli_title_function))
+        self.utilities = AI_Utilties(self.cli_title_function, Conversation(self.cli_title_function))
         self.ascii_colors = AsciiColors()
 
         self.subparsers = self.add_subparsers(dest='command', required=False, parser_class=ag.ArgumentParser)
@@ -267,7 +267,7 @@ class CLI(ag.ArgumentParser):
         
         
     def show_model_response(self, user_prompt, speech, text):
-        response = ai_function_execution(user_prompt, tools, available_functions)
+        response = ai_function_execution(user_prompt, tools, available_functions, self.utilities)
         if speech:
             say(speech, response or "Nothing in response")
         else:
@@ -383,3 +383,4 @@ if __name__ == '__main__':
 # TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in fluself.ascii_colors. when it is done, it stops adding that extra string.
 # TODO Check on how to atart and stop a thread. OR you can write a function to handle that for you.
 # TODO Find out how to do websrcapping without showing your ip address (i think it is called proxy something.)
+# TODO Handle situation when there is no internet connection.

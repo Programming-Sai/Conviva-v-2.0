@@ -5,18 +5,18 @@
     },
     {
         "role": "user",
-        "content": "how are you doing?"
-    },
-    {
-        "role": "assistant",
-        "content": "I'm doing remarkably well, thank you for inquiring after my well-being. It's a pleasure to be of service to you in Ghana. How may I assist you today, sir?"
+        "content": "bye sir"
     },
     {
         "role": "user",
-        "content": "bye"
+        "content": "hello there spies"
     },
     {
-        "role": "assistant",
-        "content": "Until we meet again, sir. Have a wonderful day."
+        "role": "user",
+        "content": "Totally Spies"
+    },
+    {
+        "role": "user",
+        "content": "Max Steel"
     }
 ]
