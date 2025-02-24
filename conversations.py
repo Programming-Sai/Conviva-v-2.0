@@ -42,6 +42,8 @@ class Conversation:
         return f"{prefix}_{filename}.{extension}"
 
     def append_to_history(self, role, content, tool_call_id=None, function_name=None):
+        print("AM IN CONVERSATIONS.PY", json.dumps(self.conversation_history, indent=4))
+
         file_name = self.current_file_name
         conversation = self.conversation_history
         entry = {
@@ -64,8 +66,9 @@ class Conversation:
         except:
             self.current_file_name = "Conversations/" + self.generate_filename(title=self.title, prefix='conviva')
 
-        if file_name != self.current_file_name:
-            self.conversation_history = [self.system_prompt, conversation[-1]]
+        # if file_name != self.current_file_name:
+            # print("File Name: ", file_name, "\n\nCurrent File Name: ", self.current_file_name)
+            # self.conversation_history = [self.system_prompt, conversation[-1]]
 
         try:
             with open(self.current_file_name, 'w') as ch:
