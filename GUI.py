@@ -223,13 +223,15 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 for filename in os.listdir(folder_path):
                     file_path = os.path.join(folder_path, filename)
                     if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.remove(file_path)  # Remove files
+                        os.remove(file_path)  
                     elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)  # Remove subdirectories
+                        shutil.rmtree(file_path)  
                 self.utilities.conversation.conversation_history = []
+                self.conversation_title.configure(text="")
                 self.place_conversations_list()
                 self.get_conversation_content_for_text_chat()
                 self.scroll_frame_content()
+
             except Exception as e:
                 messagebox.showerror(f"Error: {e}")
 
@@ -413,7 +415,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def get_conversation_content_for_text_chat(self):
         for item in self.scroll_frame.winfo_children():
             item.destroy()
-        
+        self.conversation = self.utilities.conversation.conversation_history
+        # print("Cleared History Convo...", self.utilities.conversation.conversation_history, "\nCleared History Conversation Only: ", self.conversation)
 
         tk.Frame(self.scroll_frame, height=50).pack(side='top')
         for i in range(len(self.conversation)):

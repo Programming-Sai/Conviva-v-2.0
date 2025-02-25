@@ -1,6 +1,8 @@
 import datetime
 import json
 import os
+import inspect
+
 
 class Conversation:
     def __init__(self, title_function):
@@ -43,6 +45,8 @@ class Conversation:
 
     def append_to_history(self, role, content, tool_call_id=None, function_name=None):
         # print("AM IN CONVERSATIONS.PY", json.dumps(self.conversation_history, indent=4))
+        caller = inspect.stack()[1].function  # Get the name of the calling function
+        print(f"Called by: {caller}")
 
         file_name = self.current_file_name
         conversation = self.conversation_history
