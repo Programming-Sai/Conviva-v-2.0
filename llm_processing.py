@@ -318,8 +318,11 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class):
             return ai_chat(utilities_class)
     except APIConnectionError as e:
         print(f"API connection error: {e}")
+        return str(e.message)
     except Exception as e:
         print(f"Error in function execution: {e}")
+        return str(e.message)
+
 
 
 

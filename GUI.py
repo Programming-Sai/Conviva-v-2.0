@@ -109,11 +109,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.bind("<Command-f>", self.toggle_fullscreen)
         self.bind("<Control-f>", self.toggle_fullscreen)
 
-    
-        # self.conversation_modal()
+        self.bind("<Command-n>", self.toggle_conversation)
+        self.bind("<Control-n>", self.toggle_conversation)
 
-        # self.color_palette()
+        self.bind("<Command-Shift-X>", self.clear_history)
+        self.bind("<Control-Shift-X>", self.clear_history)
 
+        
         self.mainloop()
 
 
@@ -215,7 +217,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
 
-    def clear_history(self):
+    def clear_history(self, e=None):
         response = messagebox.askyesno("Confirm Deletion", f'Are you sure you want to clear your history?')
         if response:
             try:
@@ -321,20 +323,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         return callback
 
 
-# ===========================================
-# Individual Message Deletion.
-    def delete_message(self, event):
-        widget = event.widget  # Get the clicked widget
-        widget.destroy()  # Remove from UI
 
-        # Optionally, remove from an internal list tracking messages
-        if widget in self.message_widgets:
-            self.message_widgets.remove(widget)
-
-
-# ===========================================
-
-  
 
     def main_speech_content_content(self):
         # Load image and setup header
@@ -631,6 +620,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box_text)
             self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
             self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
+        
+
+
 
     def place_file_tag(self, e):
         if self.file_tag and self.file_tag.winfo_exists():
@@ -689,6 +681,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
+        
 
 
 
@@ -760,7 +753,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
 
-    def toggle_conversation(self):
+    def toggle_conversation(self, e=None):
         self.utilities.conversation.move_file = True
         self.utilities.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
@@ -768,18 +761,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.place_conversations_list()
         self.scroll_frame_content()
 
-        # This is for toggling conversations.
-        # Also, in the conversations.py file there is a method switch_conversation. may be of help
-        # When one clicks on any of the conversations to open it the hidden conversation text file is updated, with the selected option.
-        # Also run the ai response on a different thread to make the app non-blocking.
-        # also, add a file to persist the current conversatoin
-
-
     
 
 
 
     def get_prompt_from_text_box_text(self, e):
+        if not self.conversation or not self.utilities.conversation.conversation_history:
+            self.toggle_conversation()
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
             self.prompt.set("")
@@ -793,12 +781,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.input_label = ctk.CTkTextbox(
                     self.scroll_frame,
-                    wrap="word",  # Similar to wraplength
-                    fg_color=self.purple_palette[4],  # Background color
-                    corner_radius=10,  # Rounded corners
-                    font=("Arial", 14),  # Set font to match label style
-                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
-                    height=5,  # Set height dynamically as needed
+                    wrap="word",
+                    fg_color=self.purple_palette[4], 
+                    corner_radius=10,  
+                    font=("Arial", 14),  
+                    width=int(self.wrap_length(0.5)),  
+                    height=5,  
                 )
 
         self.input_label.configure(state="normal")
@@ -824,98 +812,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.adjust_textbox_height(self.response_label)
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
-        self.input_label.bind("<Double-1>", self.copy_text)
-        self.response_label.bind("<Double-1>", self.copy_text)
 
-
-        # Initialize the state for this label
-        self.response_label.typing_state = {
-            "text": "",  
-            "count": 0,   
-            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities),
-            "running": True
-        }
         
         # self.slider(self.response_label)
         self.auto_scroll_to_end()
-
-
-
-    def copy_text(self, e):
-        widget = e.widget
-        text_to_copy = ""
-
-        # Check if the widget is a Label, Button, or other text-holding widget
-        if isinstance(widget, tk.Label):
-            text_to_copy = widget.cget("text")
-
-        if text_to_copy.strip():  # Prevent copying empty text
-            self.clipboard_clear()
-            self.clipboard_append(text_to_copy)
-            self.update_idletasks()  # Ensure clipboard is updated
-
-            print(f"Text Copied Successfully: ({text_to_copy})")
-            self.toast(f"Text Copied Successfully: ({text_to_copy})")
-
-            # Ensure clipboard stays after app loses focus
-            self.after(100, lambda: self.clipboard_append(text_to_copy))
-
-    def stop_slider(self, label):
-        """Stop the animation completely."""
-        if hasattr(label, "typing_state"):
-            label.typing_state["running"] = False
-
-    def slider(self, label):
-        typing_state = getattr(label, "typing_state", None)
-    
-        if not typing_state:
-        # If the state is not set, initialize it
-            typing_state = {
-                "text": "",
-                "count": 0,
-                "prompt": "" , 
-                "running": True
-            }
-            label.typing_state = typing_state
-        
-        # Get current state values
-        text = typing_state["text"]
-        count = typing_state["count"]
-        user_prompt = typing_state["prompt"]  # Retrieve the specific prompt for this label
-
-        if not typing_state["running"]:
-            return  # Exit function if animation is stopped
-
-
-        # **Check if user is selecting text (stop animation if so)**
-        if label.tag_ranges("sel"):  # 'sel' is the tag for selected text in Text widgets
-            label.after(50, lambda: self.slider(label))
-            return  # Stop updating while selection is active
-        
-        # If all characters have been added, stop the effect
-        if count >= len(user_prompt) and user_prompt:
-            label.configure(state="normal")  # Enable editing
-            label.delete("1.0", "end")  # Clear previous text
-            label.insert("1.0", user_prompt)  # Insert full text
-            self.adjust_textbox_height(label)
-            label.configure(state="disabled")  
-            typing_state["running"] = False  # **Stop further calls**
-            return  # **Exit function**
-
-        # Add the next character
-        label.configure(state="normal")  # Enable editing
-        label.insert("end", user_prompt[count])  # Append new character
-        self.adjust_textbox_height(label)
-        label.configure(state="disabled")  
-        typing_state["running"] = False  # **Stop further calls**
-
-       # Update the state for the next call
-        typing_state["count"] += 1
-        typing_state["text"] = text
-        self.adjust_textbox_height(label)
-        # Call the slider function again after 100 ms for typing effect
-        if typing_state["running"]:
-            label.after(50, lambda: self.slider(label))
 
 
 
