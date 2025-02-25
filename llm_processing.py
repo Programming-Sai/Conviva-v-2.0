@@ -254,8 +254,8 @@ def say(speak: bool, text: str, voice: str = 'Daniel') -> str:
                 # subprocess.run(["say", "-o", 'Sound/prompt.aiff', text])
 
                 # # Speak out loud
-                # subprocess.run(["say", "-v", voice, clean_text])
-                subprocess.run(["say", "-v", "Daniel", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
+                subprocess.run(["say", "-v", voice, clean_text])
+                subprocess.run(["say", "-v", f"{voice}", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
 
             except subprocess.CalledProcessError:
                 if stop_speaking:

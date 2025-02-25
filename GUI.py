@@ -16,7 +16,8 @@ from pathlib import Path
 import json
 from datetime import datetime 
 from tkinter import messagebox
-
+import pyttsx3
+import os
 
 
 
@@ -28,6 +29,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         ctk.set_appearance_mode('dark')
         self.title('Conviva 2.0')
         self.size = (1200, 700)
+        self.settings=self.load_settings()
         self.purple_palette = [
             "#E6E6FA",  # Lavender
             "#E0B0FF",  # Mauve
@@ -78,7 +80,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.utilities = AI_Utilties(self.gui_title_function ,Conversation(self.gui_title_function))
 
 
-        self.current_page_index = 0
+        self.current_page_index = self.settings.get('default-screen', 0)
+        self.side_panel_visible = self.settings.get('sidebar-open', False)
+        self.speech_voice = self.settings.get('default-voice', 'Daniel')
+
+        # self.preview_voice(self.speech_voice, "This is a Test")
+
         self.file_tag = None
         self.pages = [ self.speech_chat, self.text_chat, ]
         self.conversation = {}
@@ -87,7 +94,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         # Define Some Other shades Of Purple.
 
         self.geometry(f"{self.size[0]}x{self.size[1]}+{int(self.winfo_screenwidth()/2)-int(self.size[0]/2)}+{int(self.winfo_screenheight()/2)-int(self.size[1]/2)-50}")
-        self.maxsize(1200, 700)
+        self.minsize(1200, 700)
 
         self.page_frame = tk.Frame(self)
         
@@ -95,12 +102,18 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.main_speech_content = tk.Frame(self.speech_chat_frame, )
         self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[1])
 
+
         self.text_chat_frame = tk.Frame(self.page_frame)
         self.main_text_content = tk.Frame(self.text_chat_frame, )
         self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[8])
 
+        self.pulser = Pulser(self, self.speech_body, (self.purple_palette[13], self.purple_palette[13], self.purple_palette[13], self.purple_palette[13]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
+
+        
         self.load_page()
-        full_screen=False
+
+        self.toggle_side_panel()
+
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
@@ -115,7 +128,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.bind("<Command-Shift-X>", self.clear_history)
         self.bind("<Control-Shift-X>", self.clear_history)
 
-        
+        self.menubar()
         self.mainloop()
 
 
@@ -138,6 +151,148 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.page_frame.pack(fill='both', expand=True)
         self.nav_buttons()
 
+    def load_settings(self):
+        data={
+            'default-screen': 0,
+            'default-voice': 'Daniel',
+            'sidebar-open': False,
+        }
+        try:
+            with open('settings.json', 'r') as r:
+                data = json.load(r)
+        except:
+            self.set_settings(data)
+        return data
+    
+    def set_settings(self, data):
+        with open('settings.json', 'w') as w:
+            json.dump(data, w, indent=4)
+        
+
+    def menubar(self):
+        """
+        File
+            Clear history
+            Create new conversation
+            Import conversation (JSON)
+            Export conversation (JSON)
+        View
+            Switch between screens/interfaces
+            Fullscreen mode
+            Zoom
+        Configuration
+            Set default first page
+            Select system voice (macOS only for now)
+            Sidebar visibility preference
+        Help
+            Open README on GitHub
+            Report an issue (opens GitHub issues tab)
+            Keyboard shortcuts reference
+        """
+        menu_bar = tk.Menu(self)
+
+        file_menu = tk.Menu(menu_bar, tearoff=False)
+        file_menu.add_command(label='Import Conversation')
+        file_menu.add_command(label='Export Conversation')
+        file_menu.add_separator()
+        file_menu.add_command(label='Clear Conversation History')
+        file_menu.add_command(label='Create New Conversation',)
+        file_menu.add_separator()
+        file_menu.add_command(label='Quit')
+        menu_bar.add_cascade(label='File', menu=file_menu)
+
+
+
+        view_menu = tk.Menu(menu_bar, tearoff=False)
+        view_menu.add_command(label='Orb Screen')
+        view_menu.add_command(label='Chat Screen')
+        view_menu.add_separator()
+        view_menu.add_command(label='Zoom')
+        view_menu.add_command(label='Full Screen ',)
+        menu_bar.add_cascade(label='View', menu=view_menu)
+
+
+
+        config_menu = tk.Menu(menu_bar, tearoff=False)
+
+        screen_menu = tk.Menu(config_menu, tearoff=False)
+        self.default_screen = tk.IntVar(value=self.settings.get("default-screen", 0))
+        screen_menu.add_radiobutton(label='Orb Screen', variable=self.default_screen, value=0, command=lambda: self.set_default_screen(0))
+        screen_menu.add_radiobutton(label='Chat Screen', variable=self.default_screen, value=1, command=lambda: self.set_default_screen(1))
+        config_menu.add_cascade(label='Select Default Screen', menu=screen_menu)
+        config_menu.add_separator()
+
+        voice_submenu = tk.Menu(config_menu, tearoff=False)
+        voices = self.pulser.voices()
+        self.current_voice = tk.StringVar(value=self.settings.get("default-voice", ""))
+
+        for voice in voices:
+            voice_name = voice['name']
+            
+            # Create a submenu for this voice
+            single_voice_menu = tk.Menu(voice_submenu, tearoff=False)
+            
+            # Add "Preview" option
+            single_voice_menu.add_command(
+                label="Preview", 
+                command=lambda v=voice_name, t=voice['description']: self.preview_voice(v, t)
+            )
+            
+            single_voice_menu.add_radiobutton(
+                label="Set as Default", 
+                variable=self.current_voice, 
+                value=voice_name,
+                command=lambda v=voice_name: self.set_default_voice(v)
+            )
+
+            # Add this submenu under the main "Select Default Voice" menu
+            voice_submenu.add_cascade(label=voice_name, menu=single_voice_menu)
+
+        # Add the voice selection menu under Configuration
+        config_menu.add_cascade(label="Select Default Voice", menu=voice_submenu)
+
+        config_menu.add_separator()
+        self.var=tk.BooleanVar(value=self.settings.get("sidebar-open", True))
+        config_menu.add_checkbutton(label='Keep Sidebar', onvalue=True, offvalue=False, variable=self.var, command=lambda: self.set_sidebar_state(self.var.get()))
+        menu_bar.add_cascade(label='Configuration', menu=config_menu)
+
+
+
+        help_menu = tk.Menu(menu_bar, tearoff=False)
+        help_menu.add_command(label='Read The Docs')
+        help_menu.add_command(label='Raise an Issue')
+        help_menu.add_command(label='Shortcuts')
+        menu_bar.add_cascade(label='Help', menu=help_menu)
+
+
+        self.config(menu=menu_bar) 
+
+    def preview_voice(self, voice, text):
+        self.pulser.speech(text, voice)
+
+    def set_default_voice(self, voice_name):
+        self.settings = self.load_settings()
+        self.speech_voice = voice_name
+        self.settings["default-voice"] = voice_name
+        self.set_settings(self.settings)  # Save new voice to file
+    
+    def set_default_screen(self, screen_name):
+        self.settings = self.load_settings()
+        self.current_page_index = screen_name
+        self.settings["default-screen"] = screen_name
+        self.set_settings(self.settings)  # Save updated settings
+
+    def set_sidebar_state(self, state):
+        self.settings = self.load_settings()
+        self.side_panel_visible=state
+        self.toggle_side_panel()
+        self.settings["sidebar-open"] = state
+        self.set_settings(self.settings)  # Save updated settings
+
+
+
+
+
     def clear_page(self, frame):
         for child in frame.winfo_children():
             child.destroy()
@@ -154,12 +309,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             print("Not In Existance (Speech Chat)")
 
     def side_panel_creator(self, frame):
-        self.side_panel_visible = True
         self.side_panel = tk.Frame(frame)
         self.side_panel_content()
         self.side_panel.place(x=0, y=0, relheight=1.0)
 
-    def toggle_side_panel(self, e):
+    def toggle_side_panel(self, e=None):
         if self.side_panel_visible:
             # Hide the side panel
             self.side_panel.place_configure(relwidth=0)
@@ -256,17 +410,13 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             # Label inside the frame
             conversation_label = ctk.CTkLabel(
                 conversation_frame, 
-                # text=text.replace("-", " "), 
                 text=self.truncate_text(text.replace("-", " "), 30), 
-                fg_color=self.purple_palette[5], 
+                fg_color=self.purple_palette[7 if i == self.current_conversation_file() else 5], 
                 corner_radius=10, 
                 anchor="w",
-                # width=100
             )
-            # conversation_label.place(relx=0, rely=0, relwidth=0.7, anchor='w')
             conversation_label.pack(side="left", fill="both", expand=True, ipady=10, ipadx=10)
 
-            # Delete button inside the frame
             delete_button = ctk.CTkButton(
                 conversation_frame, 
                 text="✖", 
@@ -275,7 +425,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 fg_color="red", 
                 command=self.create_callback(self.delete_conversation, i, c)
             )
-            # delete_button.place(relx=0.8, rely=0, anchor="center")
+
             delete_button.pack(side="right", padx=5)
 
             edit_button = ctk.CTkButton(
@@ -342,7 +492,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.chatbar(self.speech_body)
 
         self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
-
+        
 
 
 
@@ -381,7 +531,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             return ""
         return copy.split('_')[1] + "_" + copy.split('_')[2] + "_" + copy.split('_')[3]
 
-
+    def current_conversation_file(self):
+        with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
+                data = f.read()
+        return data
 
     def open_conversation(self, conversation_to_open, e=None ):
         try:
@@ -391,10 +544,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             with open(conversation_to_open, 'r') as file:
                 self.utilities.conversation.conversation_history = json.load(file)
                 self.conversation = self.utilities.conversation.conversation_history
-                # print(json.dumps(self.utilities.conversation.conversation_history, indent=4))
-            
             self.current_conversation = conversation_to_open[45:].replace('.json', "")
             self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
+            self.place_conversations_list()
             self.get_conversation_content_for_text_chat()
             self.auto_scroll_to_end()
         except:
@@ -673,11 +825,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
             self.prompt.set("")
         else:
             self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
             self.textbox_widget.delete("1.0", tk.END) 
             self.prompt.set("")
             self.textbox_widget.pack_forget()
@@ -1038,7 +1190,29 @@ class Pulser(ctk.CTkFrame):
         self.pack_propagate(False)
         return self
 
-    def speech(self, text: str) -> None:
+    def voices(self):
+
+        # Get the voices from the "say" command
+        result = subprocess.run(["say", "-v", "?"], capture_output=True, text=True)
+
+        voices = []
+        for line in result.stdout.splitlines():
+            parts = line.split("#")
+            if len(parts) == 2:
+                name_and_lang = parts[0].strip().split(maxsplit=1)
+                if len(name_and_lang) == 2:
+                    name, lang = name_and_lang
+                    description = parts[1].strip()
+                    voices.append({"name": name, "language": lang, "description": description})
+
+        # Save as JSON file
+        # with open("macos_voices.json", "w", encoding="utf-8") as f:
+            # json.dump(voices, f, indent=4, ensure_ascii=False)
+
+        # print("Saved as macos_voices.json")
+        return voices
+
+    def speech(self, text: str, voice) -> None:
         """
         Convert the text to speech and play it.
 
@@ -1048,15 +1222,24 @@ class Pulser(ctk.CTkFrame):
         Returns:
             None
         """
+        current_os = platform.system()
+
         
-
-        subprocess.run(["say", "-v", "Daniel", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
-
-        try:
-            # say(True, text)
-            self.y, self.sr = librosa.load(self.output_file, sr=None)
-        except Exception as e:
-             print(f"Error loading audio file: {e}")
+        if current_os == 'Darwin':
+            subprocess.run(["say", "-v", f"{voice}", "-o", os.path.join(os.getcwd(), 'Sound', 'prompt.aiff'), text])
+            try:
+                # say(True, text)
+                self.y, self.sr = librosa.load(self.output_file, sr=None)
+            except Exception as e:
+                print(f"Error loading audio file: {e}")
+            # self.voices()
+        else:
+            engine = pyttsx3.init(driverName='nsss') 
+            voices = engine.getProperty('voices')
+            engine.setProperty('voice', voices[0].id)  # Change index if neede
+            output_path = os.path.join(os.getcwd(), 'Sound', 'prompt.aiff')
+            engine.save_to_file(text, output_path)
+            engine.runAndWait()
 
         self._toggle_speech()
 
