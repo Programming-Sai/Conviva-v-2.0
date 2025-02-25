@@ -28,7 +28,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         ctk.set_appearance_mode('dark')
         self.title('Conviva 2.0')
         self.size = (1200, 700)
-
         self.purple_palette = [
             "#E6E6FA",  # Lavender
             "#E0B0FF",  # Mauve
@@ -81,14 +80,15 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.current_page_index = 0
         self.file_tag = None
-        self.pages = [  self.text_chat, self.speech_chat,]
+        self.pages = [ self.speech_chat, self.text_chat, ]
         self.conversation = {}
         self.current_conversation = ''
 
         # Define Some Other shades Of Purple.
 
         self.geometry(f"{self.size[0]}x{self.size[1]}+{int(self.winfo_screenwidth()/2)-int(self.size[0]/2)}+{int(self.winfo_screenheight()/2)-int(self.size[1]/2)-50}")
-       
+        self.maxsize(1200, 700)
+
         self.page_frame = tk.Frame(self)
         
         self.speech_chat_frame = tk.Frame(self.page_frame)
@@ -104,7 +104,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.bind("<Command-b>", self.toggle_side_panel)
         self.bind("<Control-b>", self.toggle_side_panel)
         self.bind("<Configure>", self.on_resize)
-        self.full_screen = False  # Track fullscreen state
+        self.full_screen = False  
 
         self.bind("<Command-f>", self.toggle_fullscreen)
         self.bind("<Control-f>", self.toggle_fullscreen)
@@ -590,6 +590,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         except TclError as error:
             print(f"Error handling drop event: {error}")
 
+
+
     def chatbar(self, frame):
         self.prompt = tk.StringVar()
 
@@ -671,11 +673,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
-            self.pulser.speech(self.user_prompt)
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
             self.prompt.set("")
         else:
             self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.pulser.speech(self.user_prompt)
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
             self.textbox_widget.delete("1.0", tk.END) 
             self.prompt.set("")
             self.textbox_widget.pack_forget()

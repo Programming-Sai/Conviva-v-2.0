@@ -47,7 +47,7 @@ keras==3.5.0
 lazy_loader==0.4
 libclang==18.1.1
 librosa==0.10.2.post1
-llvmlite==0.43.0
+llvmlite==0.44.0
 Markdown==3.7
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
@@ -59,7 +59,7 @@ mtcnn==0.1.1
 multidict==6.0.5
 mutagen==1.47.0
 namex==0.0.8
-numba==0.60.0
+numba==0.61.0
 numpy==1.26.4
 openai==0.28.0
 opencv-python==4.10.0.84
