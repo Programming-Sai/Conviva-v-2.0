@@ -49,32 +49,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         ]
 
         self.file_type_colors = {
-            'txt': 'blue',
-            'md': 'gray',
             'png': 'blue',
             'jpg': 'blue',
             'jpeg': 'blue',
-            'pdf': 'red',
-            'doc': 'blue',
-            'docx': 'blue',
-            'xls': 'green',
-            'xlsx': 'green',
-            'ppt': 'purple',
-            'pptx': 'purple',
             'mp3': 'yellow',
             'wav': 'yellow',
-            'mp4': 'blue',
-            'avi': 'green',
-            'mkv': 'green',
-            'zip': 'green',
-            'rar': 'yellow',
-            'exe': 'red',
-            'bat': 'red',
-            'html': 'blue',
-            'htm': 'blue',
-            'py': 'green',
-            'js': 'blue',
-            'java': 'blue'
         }
         
         self.utilities = AI_Utilties(self.gui_title_function ,Conversation(self.gui_title_function))
@@ -685,16 +664,39 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         
         self.conversation_modal_text_box.bind("<FocusOut>", set_placeholder)
 
+
+# ================================================================
+
+
+    def place_file_tag(self, e):
+        if self.file_tag and self.file_tag.winfo_exists():
+            width = e.width
+            height = e.height
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+            # Check window size and reposition the label accordingly
+            if window_width == width or window_height == height:
+                self.file_tag.place(relx=0.28, rely=0.8)
+            else:
+                self.file_tag.place(relx=0.13, rely=0.8)
+
+
+
     def handleDropEvent(self, e):
         frame = e.widget  
         data = e.data.strip("{}")
         file_extension = Path(data).suffix.replace('.', '').upper()
-        # Determine the label color based on file type
-        color = self.file_type_colors.get(file_extension.lower(), 'gray')  # Default to gray if not found
+        if file_extension.lower() not in list(self.file_type_colors.keys()):
+            print(file_extension.lower(), list(self.file_type_colors.keys()))
+            messagebox.showinfo("Alert", "The Only Supported Types are Images or Audio.")
+            return 
+        
+        
+        color = self.file_type_colors.get(file_extension.lower(), 'gray') 
         try:
-            if not self.file_tag or not self.file_tag.winfo_exists():  # Create the label if it doesn't exist
+            if not self.file_tag or not self.file_tag.winfo_exists():  
                 self.file_tag = ctk.CTkLabel(
-                    self.speech_body if self.speech_body.winfo_exists() else self.text_body if self.text_body.winfo_exists() else frame,  # Or the relevant parent frame
+                    self.speech_body if self.speech_body.winfo_exists() else self.text_body if self.text_body.winfo_exists() else frame,  
                     font=('Arial Black', 16, 'bold'),
                     width=50,
                     height=70,
@@ -707,11 +709,23 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 self.file_tag.configure(text=file_extension, fg_color=color)
             # Ensure the label is visible
             self.file_tag.lift()  # Bring the label to the top
-            self.file_tag.bind("<Button-1>", lambda e : self.file_tag.place_forget())
+            self.file_tag.bind("<Button-1>", lambda e : self.destroy_tag())
             self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
+            self.send_file_to_llm(data)
         except TclError as error:
             print(f"Error handling drop event: {error}")
 
+
+    def destroy_tag(self, e=None):
+        self.file_tag.place_forget()
+        self.file_tag.destroy()
+
+
+    def send_file_to_llm(self, path):
+        print("Sending File:", path , "to llm...")
+        return("Sending File:", path , "to llm...")
+
+# ================================================================
 
 
     def chatbar(self, frame):
@@ -747,18 +761,6 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         
 
 
-
-    def place_file_tag(self, e):
-        if self.file_tag and self.file_tag.winfo_exists():
-            width = e.width
-            height = e.height
-            window_width = self.winfo_width()
-            window_height = self.winfo_height()
-            # Check window size and reposition the label accordingly
-            if window_width == width or window_height == height:
-                self.file_tag.place(relx=0.28, rely=0.8)
-            else:
-                self.file_tag.place(relx=0.13, rely=0.8)
 
     def on_resize(self, event):
         # Reposition the file_tag when the window is resized
@@ -1326,8 +1328,4 @@ if __name__ == "__main__":
 
 
 
-# TODO Add Logic to create, edit and delete any conversation in the conversation menu. ---DONE
-# TODO Finally start working on the functionality for the speech chat page.
 # TODO Work on reading files
-# TODO Also, work on making it possible to scrape sites asynchronously and return the data.
-# TODO Add a mechanism to handle low or bad internet connectivity.
