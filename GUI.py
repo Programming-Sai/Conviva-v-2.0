@@ -170,45 +170,24 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         
 
     def menubar(self):
-        """
-        File
-            Clear history
-            Create new conversation
-            Import conversation (JSON)
-            Export conversation (JSON)
-        View
-            Switch between screens/interfaces
-            Fullscreen mode
-            Zoom
-        Configuration
-            Set default first page
-            Select system voice (macOS only for now)
-            Sidebar visibility preference
-        Help
-            Open README on GitHub
-            Report an issue (opens GitHub issues tab)
-            Keyboard shortcuts reference
-        """
+        current_os = platform.system()
         menu_bar = tk.Menu(self)
 
         file_menu = tk.Menu(menu_bar, tearoff=False)
-        file_menu.add_command(label='Import Conversation')
-        file_menu.add_command(label='Export Conversation')
+        file_menu.add_command(label='Clear Conversation History', accelerator="Cmd+Shift+X" if current_os == 'Darwin' else "Ctrl+Shift+X", command=self.clear_history)
+        file_menu.add_command(label='Create New Conversation', accelerator="Cmd+N" if current_os == 'Darwin' else "Ctrl+N", command=self.toggle_conversation)
         file_menu.add_separator()
-        file_menu.add_command(label='Clear Conversation History')
-        file_menu.add_command(label='Create New Conversation',)
-        file_menu.add_separator()
-        file_menu.add_command(label='Quit')
+        file_menu.add_command(label='Quit', accelerator="Cmd+Q" if current_os == 'Darwin' else "Ctrl+Q", command=self.destroy)
         menu_bar.add_cascade(label='File', menu=file_menu)
 
 
 
         view_menu = tk.Menu(menu_bar, tearoff=False)
-        view_menu.add_command(label='Orb Screen')
-        view_menu.add_command(label='Chat Screen')
+        view_menu.add_command(label='Orb Screen', command=lambda page_num=0: self.change_page(page_num))
+        view_menu.add_command(label='Chat Screen', command=lambda page_num=1: self.change_page(page_num))
         view_menu.add_separator()
-        view_menu.add_command(label='Zoom')
-        view_menu.add_command(label='Full Screen ',)
+        view_menu.add_command(label='Full Screen ', accelerator="Cmd+F" if current_os == 'Darwin' else "Ctrl+F", command=self.toggle_fullscreen)
+        view_menu.add_command(label='Toggle Sibebar', accelerator="Cmd+B" if current_os == 'Darwin' else "Ctrl+B", command=self.toggle_side_panel)
         menu_bar.add_cascade(label='View', menu=view_menu)
 
 
@@ -228,11 +207,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         for voice in voices:
             voice_name = voice['name']
-            
-            # Create a submenu for this voice
             single_voice_menu = tk.Menu(voice_submenu, tearoff=False)
-            
-            # Add "Preview" option
             single_voice_menu.add_command(
                 label="Preview", 
                 command=lambda v=voice_name, t=voice['description']: self.preview_voice(v, t)
@@ -244,11 +219,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 value=voice_name,
                 command=lambda v=voice_name: self.set_default_voice(v)
             )
-
-            # Add this submenu under the main "Select Default Voice" menu
             voice_submenu.add_cascade(label=voice_name, menu=single_voice_menu)
-
-        # Add the voice selection menu under Configuration
         config_menu.add_cascade(label="Select Default Voice", menu=voice_submenu)
 
         config_menu.add_separator()
@@ -259,9 +230,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
         help_menu = tk.Menu(menu_bar, tearoff=False)
-        help_menu.add_command(label='Read The Docs')
-        help_menu.add_command(label='Raise an Issue')
-        help_menu.add_command(label='Shortcuts')
+        help_menu.add_command(label='Read The Docs', command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/blob/main/README.md':webbrowser.open(url))
+        help_menu.add_command(label='Raise an Issue',  command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/issues':webbrowser.open(url))
         menu_bar.add_cascade(label='Help', menu=help_menu)
 
 
@@ -1047,6 +1017,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.set_current_page_index(idx)
         self.pages[self.current_page_index]()
         self.page_frame.pack(fill='both', expand=True)
+        self.side_panel_visible=not self.side_panel_visible
+        self.toggle_side_panel()
         self.nav_buttons()
 
     def set_current_page_index(self, index):
