@@ -157,6 +157,9 @@ def ai_chat_external(utilities_class):
         utilities_class.conversation.append_to_history('assistant', response)
         return response
     except Exception as e:
+        print(e)
+        if "Request too large" in str(e):
+            return "This conversation has exceeded the size limit. You can delete some messages, start a new conversation, or optionally delete this entire conversation."
         return f"Some Thing Unexpected Happened: {e}"
 
 def ai_image_analysis_external(prompt, image, utilities_class):

@@ -1,3 +1,4 @@
+import shutil
 import customtkinter as ctk
 import sounddevice as sd
 import librosa
@@ -26,7 +27,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         super().__init__()
         ctk.set_appearance_mode('dark')
         self.title('Conviva 2.0')
-        self.size = (900, 620)
+        self.size = (1200, 700)
 
         self.purple_palette = [
             "#E6E6FA",  # Lavender
@@ -169,11 +170,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.toggle_main_menu_button()
         else:
             # Show the side panel
-            self.side_panel.place_configure(relwidth=0.25)
+            self.side_panel.place_configure(relwidth=0.3)
             if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
-                self.main_speech_content.place_configure(relx=0.25, relwidth=0.75, rely=0, relheight=1.0)
+                self.main_speech_content.place_configure(relx=0.3, relwidth=0.7, rely=0, relheight=1.0)
             if self.main_text_content is not None and self.main_text_content.winfo_exists():
-                self.main_text_content.place_configure(relx=0.25, relwidth=0.75, rely=0, relheight=1.0)
+                self.main_text_content.place_configure(relx=0.3, relwidth=0.7, rely=0, relheight=1.0)
             self.side_panel_visible = True
             self.main_menu_button_visible = False
             self.toggle_main_menu_button()
@@ -190,13 +191,21 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             light_image=Image.open("Images/NewConversation.png") 
         )
 
+        self.clear_history_image = ctk.CTkImage(
+            dark_image=Image.open("Images/Clear.png"), 
+            light_image=Image.open("Images/Clear.png") 
+        )
+
         header = tk.Frame(self.side_panel, background=self.purple_palette[13])
 
         toggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=lambda e=None :self.toggle_side_panel(e))
         toggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
 
         new_conversation = ctk.CTkButton(header, text='', image=self.new_conversation_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=self.toggle_conversation)
-        new_conversation.place(relx=1, rely=0, relwidth=0.3, relheight=1.0, anchor='ne')
+        new_conversation.place(relx=0.65, rely=0, relwidth=0.3, relheight=1.0, anchor='ne')
+
+        clear_history = ctk.CTkButton(header, text='', image=self.clear_history_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=self.clear_history)
+        clear_history.place(relx=1, rely=0, relwidth=0.3, relheight=1.0, anchor='ne')
 
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
@@ -206,6 +215,23 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
 
+    def clear_history(self):
+        response = messagebox.askyesno("Confirm Deletion", f'Are you sure you want to clear your history?')
+        if response:
+            try:
+                folder_path = "Conversations"
+                for filename in os.listdir(folder_path):
+                    file_path = os.path.join(folder_path, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.remove(file_path)  # Remove files
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)  # Remove subdirectories
+                self.utilities.conversation.conversation_history = []
+                self.place_conversations_list()
+                self.get_conversation_content_for_text_chat()
+                self.scroll_frame_content()
+            except Exception as e:
+                messagebox.showerror(f"Error: {e}")
 
     def place_conversations_list(self):
         for widget in self.conversations.winfo_children():
@@ -218,26 +244,68 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             text = i.replace(".json", "")[45:]
             if text.startswith('.'):
                 continue
-            conversation = ctk.CTkLabel(self.conversations, text=text.replace("-", " "), fg_color=self.purple_palette[6], corner_radius=10, anchor="w")
-            conversation.pack(fill='both', pady=5, ipady=10, ipadx=10)
-           
 
-            conversation.bind("<Button-1>", self.create_callback(self.open_conversation, i))
-    
+            # Create a frame to hold the label and button
+            conversation_frame = ctk.CTkFrame(self.conversations, fg_color="transparent", width=100)  
+            conversation_frame.pack(fill='both', pady=5, padx=5)
+
+            # Label inside the frame
+            conversation_label = ctk.CTkLabel(
+                conversation_frame, 
+                # text=text.replace("-", " "), 
+                text=self.truncate_text(text.replace("-", " "), 30), 
+                fg_color=self.purple_palette[5], 
+                corner_radius=10, 
+                anchor="w",
+                # width=100
+            )
+            # conversation_label.place(relx=0, rely=0, relwidth=0.7, anchor='w')
+            conversation_label.pack(side="left", fill="both", expand=True, ipady=10, ipadx=10)
+
+            # Delete button inside the frame
+            delete_button = ctk.CTkButton(
+                conversation_frame, 
+                text="✖", 
+                width=30, 
+                height=30, 
+                fg_color="red", 
+                command=self.create_callback(self.delete_conversation, i, c)
+            )
+            # delete_button.place(relx=0.8, rely=0, anchor="center")
+            delete_button.pack(side="right", padx=5)
+
+            edit_button = ctk.CTkButton(
+                conversation_frame, 
+                text="✎", 
+                width=30, 
+                height=30, 
+                fg_color=self.purple_palette[10], 
+                command=self.create_callback(self.conversation_modal, True, i)
+            )
+            # edit_button.place(relx=0.9, rely=0, anchor="center")
+            edit_button.pack(side="right", padx=5)
+
+            # Bind actions to the label
+            conversation_label.bind("<Button-1>", self.create_callback(self.open_conversation, i))
+            
             # Context menu setup
-            context_menu = tk.Menu(conversation, tearoff=0)
+            context_menu = tk.Menu(conversation_label, tearoff=0)
             context_menu.add_command(label="Open        ", command=self.create_callback(self.open_conversation, i))
             context_menu.add_command(label="Edit        ", command=self.create_callback(self.conversation_modal, True, i))
             context_menu.add_separator()
             context_menu.add_command(label="Delete      ", foreground='red', command=self.create_callback(self.delete_conversation, i, c))
 
-            # Bind double click with closure
-            conversation.bind("<Double-1>", self.create_context_menu_callback(context_menu))
+            # Bind right-click menu to the label
+            conversation_label.bind("<Double-1>", self.create_context_menu_callback(context_menu))
+            conversation_label.bind("<Button-3>", self.create_context_menu_callback(context_menu))
+
 
 
         tk.Frame(self.conversations, height=100, background=self.purple_palette[6]).pack(fill='both')
 
 
+    def truncate_text(self, text, length=20):
+        return text[:length] + "..." if len(text) > length else text
 
     def create_callback(self, func, *args):
         def callback(*_):
@@ -251,7 +319,18 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         return callback
 
 
+# ===========================================
+# Individual Message Deletion.
+    def delete_message(self, event):
+        widget = event.widget  # Get the clicked widget
+        widget.destroy()  # Remove from UI
 
+        # Optionally, remove from an internal list tracking messages
+        if widget in self.message_widgets:
+            self.message_widgets.remove(widget)
+
+
+# ===========================================
 
   
 
@@ -344,7 +423,20 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             ):
                 continue
             elif self.conversation[i]['role'] == 'user':
-                self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.conversation[i]['content'], justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
+                self.input_label = ctk.CTkTextbox(
+                    self.scroll_frame,
+                    wrap="word",  # Similar to wraplength
+                    fg_color=self.purple_palette[4],  # Background color
+                    corner_radius=10,  # Rounded corners
+                    font=("Arial", 14),  # Set font to match label style
+                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
+                    height=5,  # Set height dynamically as needed
+                )
+
+                self.input_label.configure(state="normal")
+                self.input_label.insert("1.0", self.conversation[i]['content'])
+                self.input_label.configure(state="disabled") 
+                self.adjust_textbox_height(self.input_label)
                 self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
             else:
                 self.response_label = ctk.CTkTextbox(
@@ -373,7 +465,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
     def delete_conversation(self, conversation_to_delete, conversations):
-        response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this file?")
+        response = messagebox.askyesno("Confirm Deletion", f'Are you sure you want to delete "{conversation_to_delete.replace(".json", "")[45:].replace("-", " ")}"?')
         if response:
             try:
                 os.remove(conversation_to_delete)
@@ -595,6 +687,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
 
+
+
+
     def text_chat(self):
         try:
             self.text_chat_frame = tk.Frame(self.page_frame)
@@ -605,6 +700,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.text_chat_frame.pack(fill='both', expand=True)
         except:
             print("Not In Existance (Text Chat)")
+
+
+
 
     def main_text_content_content(self):
         self.topbar(self.main_text_content)
@@ -621,7 +719,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         tk.Frame(self.scroll_frame, height=50, bg=self.purple_palette[13]).pack(side='top')
         self.scroll_frame_content()
-        # tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+
 
         self.scroll_frame.pack(fill='both', expand=True)
 
@@ -645,6 +743,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
         
+
+
     def scroll_frame_content(self):
         try:
             with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
@@ -688,7 +788,20 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
 
-        self.input_label = ctk.CTkLabel(self.scroll_frame, text=self.user_prompt, justify='left', fg_color=self.purple_palette[4], corner_radius=10, wraplength=self.wrap_length(0.5))
+        self.input_label = ctk.CTkTextbox(
+                    self.scroll_frame,
+                    wrap="word",  # Similar to wraplength
+                    fg_color=self.purple_palette[4],  # Background color
+                    corner_radius=10,  # Rounded corners
+                    font=("Arial", 14),  # Set font to match label style
+                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
+                    height=5,  # Set height dynamically as needed
+                )
+
+        self.input_label.configure(state="normal")
+        self.input_label.insert("1.0", self.user_prompt)
+        self.input_label.configure(state="disabled") 
+        self.adjust_textbox_height(self.input_label)
         self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
         
         self.response_label = ctk.CTkTextbox(
@@ -701,7 +814,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             height=5,  # Set height dynamically as needed
         )
 
-        self.response_label.configure(state="disabled")
+        # self.response_label.configure(state="disabled")
+        self.response_label.configure(state="normal")
+        self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
+        self.response_label.configure(state="disabled") 
+        self.adjust_textbox_height(self.response_label)
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
 
         self.input_label.bind("<Double-1>", self.copy_text)
@@ -712,11 +829,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.response_label.typing_state = {
             "text": "",  
             "count": 0,   
-            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities) ,
+            "prompt": ai_function_execution(self.user_prompt, tools, available_functions, self.utilities),
             "running": True
         }
         
-        self.slider(self.response_label)
+        # self.slider(self.response_label)
         self.auto_scroll_to_end()
 
 
@@ -841,6 +958,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         new_height = ((lines * line_height) + padding) 
         new_height -= (0.1 * new_height)
         textbox.configure(height=new_height)
+        self.auto_scroll_to_end()
 
 
 
@@ -1147,8 +1265,8 @@ if __name__ == "__main__":
     GUI()
 
 
-# TODO when the app initally loads, it greets the user after some time of silence. that is for the ai page, where the glowing orb would be.
-# TODO Add Logic to create, edit and delete any conversation in the conversation menu. ---TODO
+
+# TODO Add Logic to create, edit and delete any conversation in the conversation menu. ---DONE
 # TODO Finally start working on the functionality for the speech chat page.
 # TODO Work on reading files
 # TODO Also, work on making it possible to scrape sites asynchronously and return the data.
