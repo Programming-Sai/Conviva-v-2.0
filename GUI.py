@@ -52,8 +52,8 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             'png': 'blue',
             'jpg': 'blue',
             'jpeg': 'blue',
-            'mp3': 'yellow',
-            'wav': 'yellow',
+            'mp3': 'green',
+            'wav': 'green',
         }
         
         self.utilities = AI_Utilties(self.gui_title_function ,Conversation(self.gui_title_function))
@@ -69,6 +69,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.pages = [ self.speech_chat, self.text_chat, ]
         self.conversation = {}
         self.current_conversation = ''
+        self.extra_func_args={}
 
         # Define Some Other shades Of Purple.
 
@@ -711,7 +712,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.file_tag.lift()  # Bring the label to the top
             self.file_tag.bind("<Button-1>", lambda e : self.destroy_tag())
             self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
-            self.send_file_to_llm(data)
+            self.send_file_to_llm(data, file_extension)
         except TclError as error:
             print(f"Error handling drop event: {error}")
 
@@ -721,9 +722,27 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.file_tag.destroy()
 
 
-    def send_file_to_llm(self, path):
-        print("Sending File:", path , "to llm...")
-        return("Sending File:", path , "to llm...")
+    def send_file_to_llm(self, path, extension):
+        extension=extension.lower()
+        self.extra_func_args = {
+            'extra_prompt': '',
+            'path': path,
+            'extra_utilities_class': self.utilities,
+            'func': None,
+            'type': ''
+        }
+        if extension in {'png', 'jpeg', 'jpg'}:
+            self.extra_func_args['type'] = 'image'
+            self.extra_func_args['func'] = ai_image_analysis
+        elif extension in {'mp3', 'wav'}: 
+            self.extra_func_args['func'] = ai_sound_analysis
+            self.extra_func_args['type'] = 'sound'
+
+        # if '20MB or image size stop': 3
+
+        print("Sending File:", path , "to llm...", "\n", self.extra_func_args)
+
+        return self.extra_func_args
 
 # ================================================================
 
@@ -797,16 +816,21 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
     def get_prompt_from_text_box(self, e):
         if self.entry_widget.winfo_ismapped(): 
             self.user_prompt = self.prompt.get()
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
             self.prompt.set("")
         else:
             self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
             self.textbox_widget.delete("1.0", tk.END) 
             self.prompt.set("")
             self.textbox_widget.pack_forget()
             self.entry_widget.focus_set()
             self.entry_widget.pack(pady=20)
+            
+        if self.extra_func_args:
+            self.extra_func_args['extra_prompt'] = self.user_prompt
+            print(self.extra_func_args)
+
+        self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **self.extra_func_args), self.speech_voice)
+        
         
 
 
@@ -933,7 +957,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         # self.response_label.configure(state="disabled")
         self.response_label.configure(state="normal")
-        self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
+        if self.extra_func_args:
+            self.extra_func_args['extra_prompt'] = self.user_prompt
+            print(self.extra_func_args)
+        self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **self.extra_func_args))
         self.response_label.configure(state="disabled") 
         self.adjust_textbox_height(self.response_label)
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
@@ -1329,3 +1356,4 @@ if __name__ == "__main__":
 
 
 # TODO Work on reading files
+# TODO Work on making the file reading work. i need to make the `ai_function_execution` function  take in the correct image or audio function as well as any additional text.

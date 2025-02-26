@@ -102,19 +102,19 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 x = AsciiColors()
 
  
-def ai_sound_analysis_external(prompt, sound, utilities_class):
+def ai_sound_analysis_external(extra_prompt, path, extra_utilities_class):
 
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-    # filename = os.path.dirname(__file__) + sound 
-    filename = sound
+    # filename = os.path.dirname(__file__) + path 
+    filename = path
 
     # Open the audio file
     with open(filename, "rb") as file:
         try:
             transcription = client.audio.transcriptions.create(
                 file=(filename, file.read()), # Required audio file
-                # model=utilities_class.models[5], # Required model to use for transcription
-                model=utilities_class.models[2], # Required model to use for transcription
+                # model=extra_utilities_class.models[5], # Required model to use for transcription
+                model=extra_utilities_class.models[2], # Required model to use for transcription
                 response_format="json",  # Optional
                 language="en",  # Optional
                 temperature=0.0  # Optional
@@ -122,10 +122,10 @@ def ai_sound_analysis_external(prompt, sound, utilities_class):
         
 
             completion = client.chat.completions.create(
-            model=utilities_class.models[3],
+            model=extra_utilities_class.models[3],
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{prompt}"}
+                {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{extra_prompt}"}
             ],
                 temperature=1,
                 max_tokens=1024,
@@ -162,26 +162,29 @@ def ai_chat_external(utilities_class):
             return "This conversation has exceeded the size limit. You can delete some messages, start a new conversation, or optionally delete this entire conversation."
         return f"Some Thing Unexpected Happened: {e}"
 
-def ai_image_analysis_external(prompt, image, utilities_class):
+def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         chat_completion = client.chat.completions.create(
         messages=[
                 {
+                    "role": "system",
+                    "content": "Analyze the provided image and describe it in extreme detail. Identify all visible objects, colors, textures, lighting conditions, settings, people, animals, and text (if any). Include spatial relationships, positions, and orientations of objects. Infer potential actions, emotions, or interactions present in the image. Break down the image into sections if necessary, and describe each section in-depth. If applicable, analyze symbols, artistic elements, or patterns. Provide raw data that could be useful for further AI processing, ensuring no relevant detail is omitted. Finally, summarize the overall meaning, possible intent, or purpose of the image."
+                },
+                {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": prompt},
+                        {"type": "text", "text": extra_prompt},
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": image if utilities_class.is_url(image) else f"data:image/jpeg;base64,{utilities_class.encode_image(image)}" if utilities_class.is_file_path(image) else "",
+                                "url": path if extra_utilities_class.is_url(path) else f"data:image/jpeg;base64,{extra_utilities_class.encode_image(path)}" if extra_utilities_class.is_file_path(path) else "",
                             },
                         },
                     ],
                 }
             ],
-            model=utilities_class.models[1],
-            # model=utilities_class.models[0],
+            model=extra_utilities_class.models[1],
         )
 
         return chat_completion.choices[0].message.content
@@ -191,11 +194,11 @@ def ai_image_analysis_external(prompt, image, utilities_class):
 def ai_chat(utilities_class):
     return ai_chat_external(utilities_class)
 
-def ai_image_analysis(prompt, image, utilities_class):
-    return ai_image_analysis_external(prompt, image, utilities_class)
+def ai_image_analysis(extra_prompt, path, extra_utilities_class):
+    return ai_image_analysis_external(extra_prompt, path, extra_utilities_class)
 
-def ai_sound_analysis(prompt, sound, utilities_class):
-    return ai_sound_analysis_external(prompt, sound, utilities_class)
+def ai_sound_analysis(extra_prompt, path, extra_utilities_class):
+    return ai_sound_analysis_external(extra_prompt, path, extra_utilities_class)
 
 
 
@@ -273,7 +276,7 @@ def say(speak: bool, text: str, voice: str = 'Daniel') -> str:
 
 
 
-def ai_function_execution(prompt, tools, available_functions, utilities_class):
+def ai_function_execution(prompt, tools, available_functions, utilities_class, extra_func=None, **extra_func_kwargs):
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
        
@@ -287,6 +290,21 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class):
             tool_choice="auto",
             max_tokens=4096
         )
+
+        if extra_func:
+            try:
+                function_response = extra_func(**extra_func_kwargs)
+                utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f"), function_name=extra_func)
+            except Exception as e:
+                print(f"Error calling {extra_func}: {e}")
+                
+            # Return Second Response
+            second_response = client.chat.completions.create(
+                model=utilities_class.models[1],
+                messages=utilities_class.conversation.conversation_history
+            )
+            utilities_class.conversation.append_to_history("assistant", second_response.choices[0].message.content)
+            return second_response.choices[0].message.content
         
         response_message = response.choices[0].message
         tool_calls = response_message.tool_calls or {}
