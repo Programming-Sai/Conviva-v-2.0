@@ -11,6 +11,7 @@ import threading
 import platform
 import subprocess
 import speech_recognition as STT
+import datetime
 
 
 
@@ -163,14 +164,15 @@ def ai_chat_external(utilities_class):
         return f"Some Thing Unexpected Happened: {e}"
 
 def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
+    print("Calling Image for Analysis")
     try:
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         chat_completion = client.chat.completions.create(
         messages=[
-                {
-                    "role": "system",
-                    "content": "Analyze the provided image and describe it in extreme detail. Identify all visible objects, colors, textures, lighting conditions, settings, people, animals, and text (if any). Include spatial relationships, positions, and orientations of objects. Infer potential actions, emotions, or interactions present in the image. Break down the image into sections if necessary, and describe each section in-depth. If applicable, analyze symbols, artistic elements, or patterns. Provide raw data that could be useful for further AI processing, ensuring no relevant detail is omitted. Finally, summarize the overall meaning, possible intent, or purpose of the image."
-                },
+                # {
+                #     "role": "system",
+                #     "content": "Analyze the provided image and describe it in extreme detail. Identify all visible objects, colors, textures, lighting conditions, settings, people, animals, and text (if any). Include spatial relationships, positions, and orientations of objects. Infer potential actions, emotions, or interactions present in the image. Break down the image into sections if necessary, and describe each section in-depth. If applicable, analyze symbols, artistic elements, or patterns. Provide raw data that could be useful for further AI processing, ensuring no relevant detail is omitted. Finally, summarize the overall meaning, possible intent, or purpose of the image."
+                # },
                 {
                     "role": "user",
                     "content": [
@@ -186,10 +188,12 @@ def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
             ],
             model=extra_utilities_class.models[1],
         )
-
-        return chat_completion.choices[0].message.content
-    except:
-        return ""
+        response = chat_completion.choices[0].message.content
+        print("Response:", response)
+        return response
+    except Exception as e:
+        print(f"Error In Analysing Image: {e.message}")
+        return f"Error In Analysing Image: {e.message}"
 
 def ai_chat(utilities_class):
     return ai_chat_external(utilities_class)
@@ -292,9 +296,10 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
         )
 
         if extra_func:
+            print("Calling External Function:", extra_func.__name__)
             try:
                 function_response = extra_func(**extra_func_kwargs)
-                utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f"), function_name=extra_func)
+                utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f"), function_name=extra_func.__name__)
             except Exception as e:
                 print(f"Error calling {extra_func}: {e}")
                 

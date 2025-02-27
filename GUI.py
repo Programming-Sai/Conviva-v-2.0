@@ -718,8 +718,10 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
 
     def destroy_tag(self, e=None):
+        print("Destroying Tag")
         self.file_tag.place_forget()
         self.file_tag.destroy()
+        self.extra_func_args = {}
 
 
     def send_file_to_llm(self, path, extension):
@@ -828,8 +830,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         if self.extra_func_args:
             self.extra_func_args['extra_prompt'] = self.user_prompt
             print(self.extra_func_args)
-
-        self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **self.extra_func_args), self.speech_voice)
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}), self.speech_voice)
+        else:
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
         
         
 
@@ -960,7 +963,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         if self.extra_func_args:
             self.extra_func_args['extra_prompt'] = self.user_prompt
             print(self.extra_func_args)
-        self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **self.extra_func_args))
+            self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}))
+        else:
+            self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
         self.response_label.configure(state="disabled") 
         self.adjust_textbox_height(self.response_label)
         self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
