@@ -24,7 +24,6 @@ from tkinterdnd2 import TkinterDnD, DND_ALL
 class GUI(TkinterDnD.Tk):
 
 # Init functions
-  
     def __init__(self):
         # Initialize both parent classes
         super().__init__()
@@ -115,7 +114,6 @@ class GUI(TkinterDnD.Tk):
 
 
 # Basic Utils
-
     def load_page(self):
         """
         Loading the current page and setting up navigation.
@@ -950,10 +948,7 @@ class GUI(TkinterDnD.Tk):
             self.scroll_button.configure(text='▲')
 
 
-
-
 # Input Field for prompting and its associated functions
-
     def chatbar(self, frame):
         """
         Creates and configures the chat input bar with an entry widget and a textbox widget.
@@ -1383,7 +1378,6 @@ class GUI(TkinterDnD.Tk):
         tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
 
 
-
     def nav_buttons(self):
         """
         Creates and places navigation buttons for page selection.
@@ -1408,11 +1402,8 @@ class GUI(TkinterDnD.Tk):
             )
             nav_button.pack(side='left', expand=True)  # Placing buttons horizontally
 
-
-
     
 # Color Palette for Devlopment
-
     def _color_palette(self):
         """
         Displays a window showcasing the color palette for development.
@@ -1451,9 +1442,8 @@ class GUI(TkinterDnD.Tk):
 
         sk.pack(fill="both", expand=True)  # Expanding the scrollable frame
 
+
 # Input modals for various input types, or taos notifications.
-
-
     def textbox_placeholder(self, placeholder_text: str) -> None:
         """
         Sets a placeholder text inside the text box and ensures it disappears on focus.
