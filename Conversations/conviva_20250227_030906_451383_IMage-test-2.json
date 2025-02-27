@@ -228,5 +228,21 @@
     {
         "role": "assistant",
         "content": "Good day, sir."
+    },
+    {
+        "role": "user",
+        "content": "hi"
+    },
+    {
+        "role": "assistant",
+        "content": "Hello again, sir. Is there something I can assist you with?"
+    },
+    {
+        "role": "user",
+        "content": ""
+    },
+    {
+        "role": "assistant",
+        "content": "It seems you haven't typed anything, sir. Please feel free to share your thoughts or ask a question, and I'll do my best to assist you."
     }
 ]
