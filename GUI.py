@@ -16,12 +16,13 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 from tkinter import PhotoImage, TclError
 from tkinterdnd2 import TkinterDnD, DND_ALL
-
+from tkinter import filedialog
 
 
 
 
 class GUI(TkinterDnD.Tk):
+# class GUI(tk.Tk):
 
 # Init functions
     def __init__(self):
@@ -108,6 +109,9 @@ class GUI(TkinterDnD.Tk):
 
         self.bind("<Command-Shift-X>", self.clear_history)
         self.bind("<Control-Shift-X>", self.clear_history)
+
+        self.bind("<Command-u>", self.upload_file)
+        self.bind("<Control-u>", self.upload_file)
 
         self.menubar()
         self.mainloop()
@@ -242,6 +246,12 @@ class GUI(TkinterDnD.Tk):
         # ---- File Menu ----
         file_menu = tk.Menu(menu_bar, tearoff=False)
         file_menu.add_command(
+            label='Upload File (Image/Audio)',
+            accelerator="Cmd+U" if current_os == 'Darwin' else "Ctrl+U",
+            command=self.upload_file
+        )
+        file_menu.add_separator()  # Adding a separator for visual clarity
+        file_menu.add_command(
             label='Clear Conversation History',
             accelerator="Cmd+Shift+X" if current_os == 'Darwin' else "Ctrl+Shift+X",
             command=self.clear_history
@@ -351,6 +361,55 @@ class GUI(TkinterDnD.Tk):
 
         # Applying the menu bar to the app
         self.config(menu=menu_bar)
+
+    def upload_file(self, e=None):
+        self.after(100, self.open_file_dialog)  # Delay to prevent UI freezes
+
+    def open_file_dialog(self):
+        file_path = filedialog.askopenfilename(
+            defaultextension="*.*",
+            filetypes=[("Images", "*.png *.jpg *.jpeg"), ("Audio", "*.mp3 *.wav")]
+        )
+        if file_path:
+            self.on_file_selected(file_path)
+
+    def on_file_selected(self, file_path):
+        self.focus_force()
+        print("Selected file:", file_path)
+        data = file_path
+        file_extension = Path(data).suffix.replace('.', '').upper()  # Getting the file extension in uppercase
+        
+       
+        # Getting the color associated with the file type
+        color = self.file_type_colors.get(file_extension.lower(), 'gray') 
+        
+        try:
+            # Checking if the file tag label exists or needs to be created
+            if not self.file_tag or not self.file_tag.winfo_exists():  
+                self.file_tag = ctk.CTkLabel(
+                    self.speech_body if self.speech_body.winfo_exists() else self.text_body, # if self.text_body.winfo_exists() else frame,  
+                    font=('Arial Black', 16, 'bold'),
+                    width=50,
+                    height=70,
+                    corner_radius=20,
+                    text=file_extension,
+                    fg_color=color
+                )
+            else:
+                # Updating the label text and color if it already exists
+                self.file_tag.configure(text=file_extension, fg_color=color)
+            
+            # Bringing the label to the top of the UI
+            self.file_tag.lift()
+            self.file_tag.bind("<Button-1>", lambda e: self.destroy_tag())
+            
+            # Positioning the file tag on the screen
+            self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
+            
+            # Sending the file to the LLM for processing
+            self.send_file_to_llm(data, file_extension)
+        except TclError as error:
+            print(f"Error handling drop event: {error}")
 
     def change_page(self, idx):
         """
@@ -1615,7 +1674,7 @@ class FloatingButtonList(ctk.CTkLabel):
             orientation (str, optional): The orientation of the button list ('vertical' or 'horizontal'). Defaults to 'vertical'.
             functions (list, optional): The list of functions to be called when buttons are clicked. Defaults to [].
         """
-        super().__init__(parent, text='\u2630'.strip(), font=('Arial Black', 45), fg_color=parent.purple_palette[7], corner_radius=5)
+        super().__init__(parent, text='\u2630'.strip(), font=('Arial Black', 45), fg_color=parent.purple_palette[7], corner_radius=20)
         self.i = 0
         self.i_id = 0
         self.photos = []
@@ -1633,7 +1692,7 @@ class FloatingButtonList(ctk.CTkLabel):
         Places the floating buttons on the screen.
         """
         if self.i < len(self.image_names): 
-            self.label_button = ctk.CTkLabel(self.parent, image=self.get_button_image(self.image_names[self.i]), corner_radius=5, text='', fg_color=self.parent.purple_palette[7])
+            self.label_button = ctk.CTkLabel(self.parent, image=self.get_button_image(self.image_names[self.i]), corner_radius=20, text='', fg_color=self.parent.purple_palette[7])
             self.label_button.bind("<Button-1>", lambda event, id=self.i: self.open_next_page(event, id))
             if self.orientation == 'horizontal':
                 self.label_button.place(relx=(1 - (310 - self.i * 100) / self.parent.winfo_width()), y=70, anchor='ne')
@@ -1937,4 +1996,3 @@ if __name__ == "__main__":
 
 
 # TODO Work on reading files
-# TODO Add a floating button to allow switching between pages.

@@ -1,19 +1,69 @@
-from llm_processing import say, ai_function_execution, available_functions, tools
+# import tkinter as tk
+# from tkinter import filedialog
+
+# class RegularTkWindow(tk.Tk):
+#     def __init__(self):
+#         super().__init__()
+#         self.title("Regular Tk Window")
+#         self.geometry("300x200")
+
+#         self.btn = tk.Button(self, text="Open File (Tk)", command=self.upload_file)
+#         self.btn.pack(pady=20)
+
+#     def upload_file(self):
+#         self.after(100, self.open_file_dialog)  # Using `after` to avoid UI freezes
+
+#     def open_file_dialog(self):
+#         file_path = filedialog.askopenfilename(
+#         #     defaultextension="*.*",
+#             filetypes=[("Images", "*.png *.jpg *.jpeg"), ("Audio", "*.mp3 *.wav")]
+#         )
+#         if file_path:  # Ensure it's not empty
+#             self.on_file_selected(file_path)
+
+#     def on_file_selected(self, file_path):
+#         print("Tk Window Selected file:", file_path)
+
+# if __name__ == "__main__":
+#     app = RegularTkWindow()
+#     app.mainloop()
 
 
-user_prompt = input(">> ")
+import tkinter as tk
+from tkinter import filedialog
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
-# First attempt
+class DndTkWindow(TkinterDnD.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("TkinterDnD Window")
+        self.geometry("300x200")
 
-r = ai_function_execution(user_prompt, tools, available_functions)
-print(r)
+        self.btn = tk.Button(self, text="Open File (TkinterDnD)", command=self.upload_file)
+        self.btn.pack(pady=20)
 
+        self.drop_target_register(DND_FILES)
+        self.dnd_bind('<<Drop>>', self.on_drop)
 
-# Second attempt
-def show_model_response(user_prompt, speech, text):
-        response = ai_function_execution(user_prompt, tools, available_functions)
-        
-        print(response)
-   
+    def upload_file(self):
+        self.after(100, self.open_file_dialog)  # Delay to prevent UI freezes
 
-# show_model_response(user_prompt, False, True)
+    def open_file_dialog(self):
+        file_path = filedialog.askopenfilename(
+            defaultextension="*.*",
+            filetypes=[("Images", "*.png *.jpg *.jpeg"), ("Audio", "*.mp3 *.wav")]
+        )
+        if file_path:
+            self.on_file_selected(file_path)
+
+    def on_drop(self, event):
+        file_path = event.data.strip()  # Get dropped file path
+        if file_path:
+            self.on_file_selected(file_path)
+
+    def on_file_selected(self, file_path):
+        print("TkinterDnD Window Selected file:", file_path)
+
+if __name__ == "__main__":
+    app = DndTkWindow()
+    app.mainloop()
