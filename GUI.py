@@ -22,7 +22,10 @@ import os
 
 
 
-class GUI(TkinterDnD.Tk):  # Multiple inheritance
+class GUI(TkinterDnD.Tk):
+
+# Init functions
+  
     def __init__(self):
         # Initialize both parent classes
         super().__init__()
@@ -112,75 +115,192 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.mainloop()
 
 
-    def gui_title_function(self):
-        title = None
-        def title_callback(input_title):
-            nonlocal title
-            title = input_title
+# Basic Utils
 
-        self.conversation_modal(callback=title_callback)  
+    def gui_title_function(self):
+        """
+        Opening a modal to get a title input from the user.
+
+        Returning:
+            str or None: The user-provided title or None if no input is given.
+        """
+        title = None  # Setting up a placeholder for storing user input
+
+        def title_callback(input_title):
+            """Capturing the title from the modal and storing it."""
+            nonlocal title
+            title = input_title  # Storing the received title
+
+        # Opening a modal dialog and passing the callback to handle user input
+        self.conversation_modal(callback=title_callback)
+
+        # Waiting for the modal to close before returning the title
         self.modal.wait_window()
-        return title
+
+        return title  # Returning the collected title (or None if no input)
 
     def toggle_fullscreen(self, event=None):
-        self.full_screen = not self.full_screen
-        self.attributes('-fullscreen', self.full_screen)
+        """
+        Toggling fullscreen mode on and off.
+        
+        Args:
+            event (optional): Event parameter for binding (not used here).
+        """
+        self.full_screen = not self.full_screen  # Flipping the fullscreen state
+        self.attributes('-fullscreen', self.full_screen)  # Applying the new state
 
     def load_page(self):
-        self.pages[self.current_page_index]()
-        self.page_frame.pack(fill='both', expand=True)
-        self.nav_buttons()
+        """
+        Loading the current page and setting up navigation.
+        """
+        self.pages[self.current_page_index]()  # Running the function associated with the current page
+        self.page_frame.pack(fill='both', expand=True)  # Expanding the frame to fit the window
+        self.nav_buttons()  # Displaying navigation buttons
 
     def load_settings(self):
-        data={
+        """
+        Loading settings from a JSON file, or using defaults if the file is missing.
+
+        Returns:
+            dict: The settings data.
+        """
+        data = {
             'default-screen': 0,
             'default-voice': 'Daniel',
             'sidebar-open': False,
         }
+
         try:
             with open('settings.json', 'r') as r:
-                data = json.load(r)
+                data = json.load(r)  # Reading settings from the file
         except:
-            self.set_settings(data)
-        return data
-    
+            self.set_settings(data)  # Creating the file with default settings if it doesn't exist
+
+        return data  # Returning the loaded or default settings
+
     def set_settings(self, data):
+        """
+        Saving settings data to a JSON file.
+
+        Args:
+            data (dict): The settings data to save.
+        """
         with open('settings.json', 'w') as w:
-            json.dump(data, w, indent=4)
-        
+            json.dump(data, w, indent=4)  # Writing the settings to a file with indentation
 
+    def clear_page(self, frame):
+        """
+        Removing all widgets from the given frame.
+
+        Args:
+            frame (tk.Frame): The frame to clear.
+        """
+        for child in frame.winfo_children():
+            child.destroy()  # Destroying each child widget inside the frame
+
+    def topbar(self, frame):
+        """
+        Creating the top bar with a menu button and title label.
+
+        Args:
+            frame (tk.Frame): The parent frame where the top bar is being placed.
+        """
+        # Loading the menu button image
+        self.menu_image = ctk.CTkImage(
+            dark_image=Image.open("Images/Menu.png"), 
+            light_image=Image.open("Images/Menu.png")
+        )
+
+        # Creating the header frame with a background color
+        header = tk.Frame(frame, background=self.purple_palette[13])
+
+        # Creating the menu toggle button and placing it in the header
+        self.maintoggle_button = ctk.CTkButton(
+            header, text='', image=self.menu_image, width=100, 
+            fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], 
+            command=lambda e=None: self.toggle_side_panel(e)
+        )
+        self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
+
+        # Adding a title label to the header
+        self.conversation_title = tk.Label(
+            header, text='', bg=self.purple_palette[13], 
+            font=('Arial Black', 16, 'bold')
+        )
+        self.conversation_title.place(relx=1, rely=0, relwidth=0.5, relheight=1.0, anchor='ne')
+
+        # Placing the header at the top of the frame
+        header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
+
+
+# Menu Bar Section and its Associated functions.
     def menubar(self):
-        current_os = platform.system()
-        menu_bar = tk.Menu(self)
+        """
+        Creating the menu bar with different sections for file operations, view settings,
+        configurations, and help options.
+        """
+        current_os = platform.system()  # Detecting the operating system
+        menu_bar = tk.Menu(self)  # Creating the main menu bar
 
+        # ---- File Menu ----
         file_menu = tk.Menu(menu_bar, tearoff=False)
-        file_menu.add_command(label='Clear Conversation History', accelerator="Cmd+Shift+X" if current_os == 'Darwin' else "Ctrl+Shift+X", command=self.clear_history)
-        file_menu.add_command(label='Create New Conversation', accelerator="Cmd+N" if current_os == 'Darwin' else "Ctrl+N", command=self.toggle_conversation)
-        file_menu.add_separator()
-        file_menu.add_command(label='Quit', accelerator="Cmd+Q" if current_os == 'Darwin' else "Ctrl+Q", command=self.destroy)
-        menu_bar.add_cascade(label='File', menu=file_menu)
+        file_menu.add_command(
+            label='Clear Conversation History',
+            accelerator="Cmd+Shift+X" if current_os == 'Darwin' else "Ctrl+Shift+X",
+            command=self.clear_history
+        )
+        file_menu.add_command(
+            label='Create New Conversation',
+            accelerator="Cmd+N" if current_os == 'Darwin' else "Ctrl+N",
+            command=self.toggle_conversation
+        )
+        file_menu.add_separator()  # Adding a separator for visual clarity
+        file_menu.add_command(
+            label='Quit',
+            accelerator="Cmd+Q" if current_os == 'Darwin' else "Ctrl+Q",
+            command=self.destroy
+        )
+        menu_bar.add_cascade(label='File', menu=file_menu)  # Adding the file menu to the menu bar
 
-
-
+        # ---- View Menu ----
         view_menu = tk.Menu(menu_bar, tearoff=False)
         view_menu.add_command(label='Orb Screen', command=lambda page_num=0: self.change_page(page_num))
         view_menu.add_command(label='Chat Screen', command=lambda page_num=1: self.change_page(page_num))
         view_menu.add_separator()
-        view_menu.add_command(label='Full Screen ', accelerator="Cmd+F" if current_os == 'Darwin' else "Ctrl+F", command=self.toggle_fullscreen)
-        view_menu.add_command(label='Toggle Sibebar', accelerator="Cmd+B" if current_os == 'Darwin' else "Ctrl+B", command=self.toggle_side_panel)
-        menu_bar.add_cascade(label='View', menu=view_menu)
+        view_menu.add_command(
+            label='Full Screen',
+            accelerator="Cmd+F" if current_os == 'Darwin' else "Ctrl+F",
+            command=self.toggle_fullscreen
+        )
+        view_menu.add_command(
+            label='Toggle Sidebar',
+            accelerator="Cmd+B" if current_os == 'Darwin' else "Ctrl+B",
+            command=self.toggle_side_panel
+        )
+        menu_bar.add_cascade(label='View', menu=view_menu)  # Adding the view menu to the menu bar
 
-
-
+        # ---- Configuration Menu ----
         config_menu = tk.Menu(menu_bar, tearoff=False)
 
+        # Default Screen Selection
         screen_menu = tk.Menu(config_menu, tearoff=False)
         self.default_screen = tk.IntVar(value=self.settings.get("default-screen", 0))
-        screen_menu.add_radiobutton(label='Orb Screen', variable=self.default_screen, value=0, command=lambda: self.set_default_screen(0))
-        screen_menu.add_radiobutton(label='Chat Screen', variable=self.default_screen, value=1, command=lambda: self.set_default_screen(1))
+        screen_menu.add_radiobutton(
+            label='Orb Screen',
+            variable=self.default_screen,
+            value=0,
+            command=lambda: self.set_default_screen(0)
+        )
+        screen_menu.add_radiobutton(
+            label='Chat Screen',
+            variable=self.default_screen,
+            value=1,
+            command=lambda: self.set_default_screen(1)
+        )
         config_menu.add_cascade(label='Select Default Screen', menu=screen_menu)
         config_menu.add_separator()
 
+        # Voice Selection
         voice_submenu = tk.Menu(config_menu, tearoff=False)
         voices = self.pulser.voices()
         self.current_voice = tk.StringVar(value=self.settings.get("default-voice", ""))
@@ -188,84 +308,128 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         for voice in voices:
             voice_name = voice['name']
             single_voice_menu = tk.Menu(voice_submenu, tearoff=False)
+
+            # Adding a preview option for each voice
             single_voice_menu.add_command(
-                label="Preview", 
+                label="Preview",
                 command=lambda v=voice_name, t=voice['description']: self.preview_voice(v, t)
             )
-            
+
+            # Allowing the user to set a default voice
             single_voice_menu.add_radiobutton(
-                label="Set as Default", 
-                variable=self.current_voice, 
+                label="Set as Default",
+                variable=self.current_voice,
                 value=voice_name,
                 command=lambda v=voice_name: self.set_default_voice(v)
             )
+
             voice_submenu.add_cascade(label=voice_name, menu=single_voice_menu)
+
         config_menu.add_cascade(label="Select Default Voice", menu=voice_submenu)
 
         config_menu.add_separator()
-        self.var=tk.BooleanVar(value=self.settings.get("sidebar-open", True))
-        config_menu.add_checkbutton(label='Keep Sidebar', onvalue=True, offvalue=False, variable=self.var, command=lambda: self.set_sidebar_state(self.var.get()))
-        menu_bar.add_cascade(label='Configuration', menu=config_menu)
 
+        # Sidebar Visibility Option
+        self.var = tk.BooleanVar(value=self.settings.get("sidebar-open", True))
+        config_menu.add_checkbutton(
+            label='Keep Sidebar',
+            onvalue=True,
+            offvalue=False,
+            variable=self.var,
+            command=lambda: self.set_sidebar_state(self.var.get())
+        )
+        menu_bar.add_cascade(label='Configuration', menu=config_menu)  # Adding the config menu
 
-
+        # ---- Help Menu ----
         help_menu = tk.Menu(menu_bar, tearoff=False)
-        help_menu.add_command(label='Read The Docs', command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/blob/main/README.md':webbrowser.open(url))
-        help_menu.add_command(label='Raise an Issue',  command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/issues':webbrowser.open(url))
-        menu_bar.add_cascade(label='Help', menu=help_menu)
+        help_menu.add_command(
+            label='Read The Docs',
+            command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/blob/main/README.md': webbrowser.open(url)
+        )
+        help_menu.add_command(
+            label='Raise an Issue',
+            command=lambda url='https://github.com/Programming-Sai/Conviva-v-2.0/issues': webbrowser.open(url)
+        )
+        menu_bar.add_cascade(label='Help', menu=help_menu)  # Adding the help menu
 
-
-        self.config(menu=menu_bar) 
+        # Applying the menu bar to the app
+        self.config(menu=menu_bar)
 
     def preview_voice(self, voice, text):
+        """
+        Plays a preview of the selected voice using the given text.
+        """
         self.pulser.speech(text, voice)
 
     def set_default_voice(self, voice_name):
-        self.settings = self.load_settings()
-        self.speech_voice = voice_name
-        self.settings["default-voice"] = voice_name
-        self.set_settings(self.settings)  # Save new voice to file
-    
+        """
+        Updates and saves the default voice setting.
+        """
+        self.settings = self.load_settings()  # Load current settings
+        self.speech_voice = voice_name  # Update the voice setting
+        self.settings["default-voice"] = voice_name  # Store in settings
+        self.set_settings(self.settings)  # Save the updated settings
+
     def set_default_screen(self, screen_name):
-        self.settings = self.load_settings()
-        self.current_page_index = screen_name
-        self.settings["default-screen"] = screen_name
-        self.set_settings(self.settings)  # Save updated settings
+        """
+        Updates and saves the default screen setting.
+        """
+        self.settings = self.load_settings()  # Load current settings
+        self.current_page_index = screen_name  # Update the current page index
+        self.settings["default-screen"] = screen_name  # Store in settings
+        self.set_settings(self.settings)  # Save the updated settings
 
     def set_sidebar_state(self, state):
-        self.settings = self.load_settings()
-        self.side_panel_visible=state
-        self.toggle_side_panel()
-        self.settings["sidebar-open"] = state
-        self.set_settings(self.settings)  # Save updated settings
+        """
+        Updates and saves the sidebar visibility state.
+        """
+        self.settings = self.load_settings()  # Load current settings
+        self.side_panel_visible = state  # Update sidebar visibility
+        self.toggle_side_panel()  # Apply visibility change
+        self.settings["sidebar-open"] = state  # Store in settings
+        self.set_settings(self.settings)  # Save the updated settings
+
+    def change_page(self, idx):
+        """
+        Switches to a new page by clearing the current page and loading the selected one.
+        Also toggles the sidebar state.
+        """
+        self.clear_page(self.page_frame)  # Clear the existing content
+        self.set_current_page_index(idx)  # Update the page index
+        self.pages[self.current_page_index]()  # Load the new page
+        self.page_frame.pack(fill='both', expand=True)  # Ensure the new page is displayed
+        self.side_panel_visible = not self.side_panel_visible  # Toggle sidebar state
+        self.toggle_side_panel()  # Apply the sidebar change
+        self.nav_buttons()  # Update navigation buttons
+
+    def set_current_page_index(self, index):
+        """
+        Sets the current page index.
+        """
+        self.current_page_index = index
 
 
 
 
 
-    def clear_page(self, frame):
-        for child in frame.winfo_children():
-            child.destroy()
 
-    def speech_chat(self):
-        try:
-            self.speech_chat_frame = tk.Frame(self.page_frame)
-            self.side_panel_creator(self.speech_chat_frame)
-            self.main_speech_content = tk.Frame(self.speech_chat_frame, )
-            self.main_speech_content_content()
-            self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
-            self.speech_chat_frame.pack(fill='both', expand=True)
-        except:
-            print("Not In Existance (Speech Chat)")
-
+# Side bar Section and its Associated Functions
     def side_panel_creator(self, frame):
-        self.side_panel = tk.Frame(frame)
-        self.side_panel_content()
-        self.side_panel.place(x=0, y=0, relheight=1.0)
+        """
+        Creating and adding a side panel to the specified frame.
+        This initializes the sidebar and sets up its content.
+        """
+        self.side_panel = tk.Frame(frame)  # Creating the side panel frame
+        self.side_panel_content()  # Populating the side panel with UI elements
+        self.side_panel.place(x=0, y=0, relheight=1.0)  # Positioning the panel
 
     def toggle_side_panel(self, e=None):
+        """
+        Toggling the visibility of the side panel.
+        This adjusts the layout dynamically to either hide or show the sidebar.
+        """
         if self.side_panel_visible:
-            # Hide the side panel
+            # Hiding the side panel
             self.side_panel.place_configure(relwidth=0)
             if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
                 self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
@@ -275,7 +439,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.main_menu_button_visible = True
             self.toggle_main_menu_button()
         else:
-            # Show the side panel
+            # Showing the side panel
             self.side_panel.place_configure(relwidth=0.3)
             if self.main_speech_content is not None and self.main_speech_content.winfo_exists():
                 self.main_speech_content.place_configure(relx=0.3, relwidth=0.7, rely=0, relheight=1.0)
@@ -285,8 +449,12 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             self.main_menu_button_visible = False
             self.toggle_main_menu_button()
 
-
     def side_panel_content(self):
+        """
+        Populating the side panel with header buttons and a conversation list.
+        This sets up the UI elements within the sidebar.
+        """
+        # Loading images for sidebar buttons
         self.menu_image = ctk.CTkImage(
             dark_image=Image.open("Images/Menu.png"), 
             light_image=Image.open("Images/Menu.png") 
@@ -302,9 +470,11 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             light_image=Image.open("Images/Clear.png") 
         )
 
+        # Creating the sidebar header
         header = tk.Frame(self.side_panel, background=self.purple_palette[13])
 
-        toggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=lambda e=None :self.toggle_side_panel(e))
+        # Adding buttons to the header
+        toggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=lambda e=None: self.toggle_side_panel(e))
         toggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
 
         new_conversation = ctk.CTkButton(header, text='', image=self.new_conversation_image, width=100, fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], command=self.toggle_conversation)
@@ -315,49 +485,56 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
 
         header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
+        # Creating the conversation list section
         self.conversations = ctk.CTkScrollableFrame(self.side_panel, fg_color=self.purple_palette[6])
-
         self.place_conversations_list()
-
         self.conversations.place(relx=0, rely=0.1, relwidth=1, relheight=1)
 
     def clear_history(self, e=None):
-        response = messagebox.askyesno("Confirm Deletion", f'Are you sure you want to clear your history?')
+        """
+        Clearing all stored conversations after user confirmation.
+        This removes all conversation files and updates the UI accordingly.
+        """
+        response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to clear your history?")
         if response:
             try:
                 folder_path = "Conversations"
+                # Deleting all conversation files
                 for filename in os.listdir(folder_path):
                     file_path = os.path.join(folder_path, filename)
                     if os.path.isfile(file_path) or os.path.islink(file_path):
                         os.remove(file_path)  
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path)  
+                # Resetting conversation history
                 self.utilities.conversation.conversation_history = []
                 self.conversation_title.configure(text="")
                 self.place_conversations_list()
                 self.get_conversation_content_for_text_chat()
                 self.scroll_frame_content()
-
             except Exception as e:
                 messagebox.showerror(f"Error: {e}")
 
     def place_conversations_list(self):
+        """
+        Updating and displaying the list of conversations in the sidebar.
+        This dynamically refreshes the UI with existing conversation history.
+        """
         for widget in self.conversations.winfo_children():
             widget.destroy()
 
         c = self.get_conversations()
         
-
         for i in c:
             text = i.replace(".json", "")[45:]
             if text.startswith('.'):
                 continue
 
-            # Create a frame to hold the label and button
+            # Creating a frame to hold the label and buttons
             conversation_frame = ctk.CTkFrame(self.conversations, fg_color="transparent", width=100)  
             conversation_frame.pack(fill='both', pady=5, padx=5)
 
-            # Label inside the frame
+            # Adding the conversation label
             conversation_label = ctk.CTkLabel(
                 conversation_frame, 
                 text=self.truncate_text(text.replace("-", " "), 30), 
@@ -367,6 +544,7 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             )
             conversation_label.pack(side="left", fill="both", expand=True, ipady=10, ipadx=10)
 
+            # Adding delete button
             delete_button = ctk.CTkButton(
                 conversation_frame, 
                 text="✖", 
@@ -375,9 +553,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 fg_color="red", 
                 command=self.create_callback(self.delete_conversation, i, c)
             )
-
             delete_button.pack(side="right", padx=5)
 
+            # Adding edit button
             edit_button = ctk.CTkButton(
                 conversation_frame, 
                 text="✎", 
@@ -386,179 +564,98 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
                 fg_color=self.purple_palette[10], 
                 command=self.create_callback(self.conversation_modal, True, i)
             )
-            # edit_button.place(relx=0.9, rely=0, anchor="center")
             edit_button.pack(side="right", padx=5)
 
-            # Bind actions to the label
+            # Binding actions to the label
             conversation_label.bind("<Button-1>", self.create_callback(self.open_conversation, i))
             
-            # Context menu setup
+            # Creating context menu for conversation actions
             context_menu = tk.Menu(conversation_label, tearoff=0)
             context_menu.add_command(label="Open        ", command=self.create_callback(self.open_conversation, i))
             context_menu.add_command(label="Edit        ", command=self.create_callback(self.conversation_modal, True, i))
             context_menu.add_separator()
             context_menu.add_command(label="Delete      ", foreground='red', command=self.create_callback(self.delete_conversation, i, c))
 
-            # Bind right-click menu to the label
+            # Binding right-click menu to the label
             conversation_label.bind("<Double-1>", self.create_context_menu_callback(context_menu))
             conversation_label.bind("<Button-3>", self.create_context_menu_callback(context_menu))
 
-
-
+        # Adding a spacer at the bottom
         tk.Frame(self.conversations, height=100, background=self.purple_palette[6]).pack(fill='both')
 
-
     def truncate_text(self, text, length=20):
+        """
+        Truncating text to the specified length and appending '...' if it exceeds the limit.
+        This ensures UI elements remain properly formatted.
+        """
         return text[:length] + "..." if len(text) > length else text
 
     def create_callback(self, func, *args):
+        """
+        Creating a callback function with pre-defined arguments.
+        This allows binding events without passing extra parameters manually.
+        """
         def callback(*_):
             func(*args)
         return callback
 
-
     def create_context_menu_callback(self, menu):
+        """
+        Creates a callback function for displaying a context menu.
+
+        Args:
+            menu (tk.Menu): The menu to be shown.
+
+        Returns:
+            function: A callback function to display the context menu.
+        """
         def callback(event):
             self.show_context_menu(event, menu)
         return callback
 
+    def toggle_main_menu_button(self):
+        """
+        Toggles the visibility of the main menu button.
+        If visible, places it in the UI. Otherwise, hides it.
+        """
+        if self.main_menu_button_visible:
+            self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0) 
+        else:
+            self.maintoggle_button.place_forget()
 
+    def toggle_conversation(self, e=None):
+        """
+        Starts a new conversation and refreshes the conversation list.
 
-
-    def main_speech_content_content(self):
-        # Load image and setup header
-        self.topbar(self.main_speech_content)
-
-        # Setup body
-        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[13])
-
-        self.pulser = Pulser(self, self.speech_body, (self.purple_palette[13], self.purple_palette[13], self.purple_palette[13], self.purple_palette[13]) , corner_radius=200, border_width=2, border_color=self.purple_palette[9]).pack_frame()
-
-        self.pulser.drop_target_register(DND_ALL)
-        self.pulser.dnd_bind('<<Drop>>', self.handleDropEvent)
-
-        
-        # Initialize widgets but don't pack them yet
-        self.chatbar(self.speech_body)
-
-        self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
-        
-
-
-
-    def topbar(self, frame):
-        self.menu_image = ctk.CTkImage(
-            dark_image=Image.open("Images/Menu.png"), 
-            light_image=Image.open("Images/Menu.png")
-        )
-
-        header = tk.Frame(frame, background=self.purple_palette[13])
-        self.maintoggle_button = ctk.CTkButton(header, text='', image=self.menu_image, width=100, 
-                                            fg_color=self.purple_palette[13], hover_color=self.purple_palette[7], 
-                                            command=lambda e=None: self.toggle_side_panel(e))
-        self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0)
-        
-        
-        self.conversation_title = tk.Label(header, text='', bg=self.purple_palette[13], font=('Arial Black', 16, 'bold'))
-        self.conversation_title.place(relx=1, rely=0, relwidth=0.5, relheight=1.0, anchor='ne')
-
-
-        header.place(relx=0, rely=0, relwidth=1, relheight=0.1)
-
-
-    def get_conversations(self):
-        walk_gen = os.walk("Conversations")
-        walk_list = list(walk_gen)
-        root = walk_list[0][0]
-        files = [os.path.join(root, i) for i in walk_list[0][2]] or []
-        sorted_files = sorted(files, key=lambda x: self.extract_timestamp(x), reverse=True)
-        return sorted_files
-
-    
-    def extract_timestamp(self, file_name):
-        copy = file_name.replace("Conversations/", "")
-        if copy.startswith("."):
-            return ""
-        return copy.split('_')[1] + "_" + copy.split('_')[2] + "_" + copy.split('_')[3]
-
-    def current_conversation_file(self):
-        with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
-                data = f.read()
-        return data
-
-    def open_conversation(self, conversation_to_open, e=None ):
-        try:
-            with open("Conversations/.current_conversation_file_name.txt", 'w') as f:
-                f.write(conversation_to_open)
-
-            with open(conversation_to_open, 'r') as file:
-                self.utilities.conversation.conversation_history = json.load(file)
-                self.conversation = self.utilities.conversation.conversation_history
-            self.current_conversation = conversation_to_open[45:].replace('.json', "")
-            self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
-            self.place_conversations_list()
-            self.get_conversation_content_for_text_chat()
-            self.auto_scroll_to_end()
-        except:
-            self.conversation = {}
-
-
-    def get_conversation_content_for_text_chat(self):
-        for item in self.scroll_frame.winfo_children():
-            item.destroy()
-        self.conversation = self.utilities.conversation.conversation_history
-        # print("Cleared History Convo...", self.utilities.conversation.conversation_history, "\nCleared History Conversation Only: ", self.conversation)
-
-        tk.Frame(self.scroll_frame, height=50).pack(side='top')
-        for i in range(len(self.conversation)):
-            if (
-                self.conversation[i]['role'] == 'system' 
-                or self.conversation[i]['role'] == 'tool'
-            ):
-                continue
-            elif self.conversation[i]['role'] == 'user':
-                self.input_label = ctk.CTkTextbox(
-                    self.scroll_frame,
-                    wrap="word",  # Similar to wraplength
-                    fg_color=self.purple_palette[4],  # Background color
-                    corner_radius=10,  # Rounded corners
-                    font=("Arial", 14),  # Set font to match label style
-                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
-                    height=5,  # Set height dynamically as needed
-                )
-
-                self.input_label.configure(state="normal")
-                self.input_label.insert("1.0", self.conversation[i]['content'])
-                self.input_label.configure(state="disabled") 
-                self.adjust_textbox_height(self.input_label)
-                self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
-            else:
-                self.response_label = ctk.CTkTextbox(
-                    self.scroll_frame,
-                    wrap="word",  # Similar to wraplength
-                    fg_color=self.purple_palette[6],  # Background color
-                    corner_radius=10,  # Rounded corners
-                    font=("Arial", 14),  # Set font to match label style
-                    width=int(self.wrap_length(0.5)),  # Match previous wrap length
-                    height=5,  # Set height dynamically as needed
-                )
-
-                self.response_label.configure(state="normal")
-                self.response_label.insert("1.0", self.conversation[i]['content'])
-                self.response_label.configure(state="disabled") 
-                self.adjust_textbox_height(self.response_label)
-                self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
-
-                
-        self.auto_scroll_to_end()
-        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
-
+        Args:
+            e (event, optional): Event parameter (used in bindings). Defaults to None.
+        """
+        self.utilities.conversation.move_file = True
+        self.utilities.conversation.create_new_conversation()
+        print("New Conversation Should Start here!!!")
+        self.utilities.conversation.move_file = False
+        self.place_conversations_list()
+        self.scroll_frame_content()
 
     def show_context_menu(self, event, menu):
+        """
+        Displays a context menu at the mouse cursor's position.
+
+        Args:
+            event (tk.Event): The event object containing mouse position.
+            menu (tk.Menu): The context menu to display.
+        """
         menu.post(event.x_root, event.y_root)
 
-
     def delete_conversation(self, conversation_to_delete, conversations):
+        """
+        Deletes a selected conversation file after user confirmation.
+        Updates the current conversation file reference if needed.
+
+        Args:
+            conversation_to_delete (str): The file path of the conversation to delete.
+            conversations (list): List of all conversation file paths.
+        """
         response = messagebox.askyesno("Confirm Deletion", f'Are you sure you want to delete "{conversation_to_delete.replace(".json", "")[45:].replace("-", " ")}"?')
         if response:
             try:
@@ -572,85 +669,918 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             except Exception as e:
                 messagebox.showerror(f"Error: {e}")
 
+    def get_conversations(self):
+        """
+        Retrieves and sorts conversation files based on extracted timestamps.
+
+        Returns:
+            list: A list of conversation file paths sorted by timestamp in descending order.
+        """
+        # Walking through the "Conversations" directory to get all files
+        walk_gen = os.walk("Conversations")
+        walk_list = list(walk_gen)
+        root = walk_list[0][0]
+
+        # Collecting file paths in the directory
+        files = [os.path.join(root, i) for i in walk_list[0][2]] or []
+
+        # Sorting files based on extracted timestamps (newest first)
+        sorted_files = sorted(files, key=lambda x: self.extract_timestamp(x), reverse=True)
+        return sorted_files
+
+    def extract_timestamp(self, file_name):
+        """
+        Extracts the timestamp from a conversation file name.
+
+        Args:
+            file_name (str): The file path of the conversation.
+
+        Returns:
+            str: Extracted timestamp in the format 'YYYY_MM_DD'.
+        """
+        copy = file_name.replace("Conversations/", "")
+
+        # Returning empty string if it's a hidden file
+        if copy.startswith("."):
+            return ""
         
+        # Extracting and returning the timestamp
+        return copy.split('_')[1] + "_" + copy.split('_')[2] + "_" + copy.split('_')[3]
+
+    def current_conversation_file(self):
+        """
+        Retrieves the file path of the currently active conversation.
+
+        Returns:
+            str: The path of the current conversation file.
+        """
+        # Reading the current conversation file reference from storage
+        with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
+                data = f.read()
+        return data
+
+    def open_conversation(self, conversation_to_open, e=None ):
+        """
+        Opens a selected conversation file, loads its content, and updates the UI.
+
+        Args:
+            conversation_to_open (str): The file path of the conversation to open.
+            e (event, optional): Event parameter (used in bindings). Defaults to None.
+        """
+        try:
+            # Updating the current conversation file reference
+            with open("Conversations/.current_conversation_file_name.txt", 'w') as f:
+                f.write(conversation_to_open)
+
+            # Loading the conversation history from the file
+            with open(conversation_to_open, 'r') as file:
+                self.utilities.conversation.conversation_history = json.load(file)
+                self.conversation = self.utilities.conversation.conversation_history
+
+            # Extracting and formatting the conversation title for display
+            self.current_conversation = conversation_to_open[45:].replace('.json', "")
+            self.conversation_title.configure(text=self.current_conversation.replace("-", " "))
+
+            # Refreshing the conversation list and updating the chat window
+            self.place_conversations_list()
+            self.get_conversation_content_for_text_chat()
+            self.auto_scroll_to_end()
+        except:
+            # Resetting conversation data in case of an error
+            self.conversation = {}
+
+
+
+
+# Speech (Orb) Chat Page
+
+    def speech_chat(self):
+        """
+        Initializes and displays the speech chat interface.
+        """
+        try:
+            # Creating the main frame for speech chat
+            self.speech_chat_frame = tk.Frame(self.page_frame)
+
+            # Adding side panel to the speech chat frame
+            self.side_panel_creator(self.speech_chat_frame)
+
+            # Creating the main content frame for speech chat
+            self.main_speech_content = tk.Frame(self.speech_chat_frame)
+
+            # Setting up the speech chat content
+            self.main_speech_content_content()
+
+            # Placing the main speech content to occupy the entire frame
+            self.main_speech_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+
+            # Packing the speech chat frame to make it visible
+            self.speech_chat_frame.pack(fill='both', expand=True)
+        except:
+            # Handling cases where speech chat does not exist
+            print("Not In Existence (Speech Chat)")
+
+    def main_speech_content_content(self):
+        """
+        Sets up the UI components for the speech chat content.
+        """
+        # Loading the top bar/header
+        self.topbar(self.main_speech_content)
+
+        # Creating the body section for speech chat
+        self.speech_body = tk.Frame(self.main_speech_content, background=self.purple_palette[13])
+
+        # Initializing the pulser component with specific colors and styles
+        self.pulser = Pulser(
+            self,
+            self.speech_body,
+            (self.purple_palette[13], self.purple_palette[13], self.purple_palette[13], self.purple_palette[13]),
+            corner_radius=200,
+            border_width=2,
+            border_color=self.purple_palette[9]
+        ).pack_frame()
+
+        # Enabling drag-and-drop functionality for the pulser
+        self.pulser.drop_target_register(DND_ALL)
+        self.pulser.dnd_bind('<<Drop>>', self.handleDropEvent)
+
+        # Initializing the chat input bar without displaying it yet
+        self.chatbar(self.speech_body)
+
+        # Placing the speech chat body in the frame
+        self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+        
+
+
+
+
+# Text (Chat) Chat Page
+    def text_chat(self):
+        """
+        Initializes and displays the text chat interface.
+        """
+        try:
+            # Creating the main frame for text chat
+            self.text_chat_frame = tk.Frame(self.page_frame)
+
+            # Adding the side panel to the text chat frame
+            self.side_panel_creator(self.text_chat_frame)
+
+            # Creating the main content frame for text chat
+            self.main_text_content = tk.Frame(self.text_chat_frame)
+
+            # Setting up the text chat content
+            self.main_text_content_content()
+
+            # Placing the main text content to occupy the entire frame
+            self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
+
+            # Packing the text chat frame to make it visible
+            self.text_chat_frame.pack(fill='both', expand=True)
+        except:
+            # Handling cases where text chat does not exist
+            print("Not In Existence (Text Chat)")
+
+    def main_text_content_content(self):
+        """
+        Sets up the UI components for the text chat content.
+        """
+        # Loading the top bar/header
+        self.topbar(self.main_text_content)
+
+        # Creating the body section for text chat
+        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[13])
+
+        # Initializing a scrollable frame for text messages
+        self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[13])
+
+        # Enabling drag-and-drop functionality for the scroll frame
+        self.scroll_frame.drop_target_register(DND_ALL)
+        self.scroll_frame.dnd_bind('<<Drop>>', self.handleDropEvent)
+
+        # Adding an empty spacer frame at the top of the scrollable frame
+        tk.Frame(self.scroll_frame, height=50, bg=self.purple_palette[13]).pack(side='top')
+
+        # Loading conversation content into the scroll frame
+        self.scroll_frame_content()
+
+        # Packing the scroll frame to make it visible
+        self.scroll_frame.pack(fill='both', expand=True)
+
+        # Binding scroll shortcuts for Mac and Windows/Linux
+        self.bind("<Command-Up>", self.scroll_to_top)
+        self.bind("<Command-Down>", self.auto_scroll_to_end)
+        self.bind("<Control-Up>", self.scroll_to_top)
+        self.bind("<Control-Down>", self.auto_scroll_to_end)
+
+        # Adding the chat input bar
+        self.chatbar(self.text_body)
+
+        # Creating a button frame for scrolling control
+        self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=60, height=60, fg_color=self.purple_palette[9])
+
+        # Placing the button frame at a fixed position
+        self.button_frame.place(relx=.85, rely=.8)
+        self.button_frame.pack_propagate(False)
+
+        # Binding click event to toggle scrolling behavior
+        self.button_frame.bind("<Button-1>", self.scroll_button_method)
+
+        # Creating a scroll button to toggle between top and bottom
+        self.scroll_button = ctk.CTkButton(
+            self.button_frame, text="▲", font=("Segoe UI Symbol", 24),
+            width=0, height=60, fg_color=self.purple_palette[9],
+            hover_color=self.purple_palette[9], command=self.scroll_button_method
+        )
+        self.scroll_button.pack()
+
+        # Placing the text body in the frame
+        self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+
+    def scroll_frame_content(self):
+        """
+        Loads the current conversation file and updates the scrollable frame.
+        """
+        try:
+            # Reading the current conversation file name
+            with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
+                current_file = f.read()
+
+            # Opening the selected conversation
+            self.open_conversation(conversation_to_open=current_file)
+        except:
+            # Handling cases where the file does not exist
+            pass
+
+    def scroll_button_method(self, e=None):
+        """
+        Toggles between scrolling to the top and scrolling to the bottom.
+        """
+        # Checking the current direction of the button
+        direction = self.scroll_button.cget('text')
+
+        if direction == '▲':
+            # Scrolling to the top and updating the button text
+            self.scroll_to_top()
+            self.scroll_button.configure(text='▼')
+        else:
+            # Scrolling to the bottom and updating the button text
+            self.auto_scroll_to_end()
+            self.scroll_button.configure(text='▲')
+
+    def auto_scroll_to_end(self, e=None):
+        """
+        Scrolls the conversation to the latest message at the bottom.
+        """
+        # Setting the scrollbar position to the bottom
+        self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
+
+        # Configuring the canvas to update the scrollbar settings
+        self.scroll_frame._parent_canvas.configure(
+            yscrollcommand=self.scroll_frame._scrollbar.set,
+            scrollregion=self.scroll_frame._parent_canvas.bbox('all')
+        )
+
+        # Moving the scrollbar to the bottom
+        self.scroll_frame._parent_canvas.yview_moveto(1.0)
+
+    def scroll_to_top(self, event=None):
+        """
+        Scrolls the conversation to the top.
+        """
+        # Moving the scrollbar to the top
+        self.scroll_frame._parent_canvas.yview_moveto(0.0)
+
+        self.scroll_frame._parent_canvas.yview_moveto(0.0)
+
+
+
+
+# Input Field for prompting and its associated functions
+
+    def chatbar(self, frame):
+        """
+        Creates and configures the chat input bar with an entry widget and a textbox widget.
+        Handles drag-and-drop events and binds keyboard shortcuts based on the context (speech or text).
+
+        Args:
+            frame (tk.Frame): The parent frame where the chat input bar is placed.
+
+        Returns:
+            None
+        """
+        self.prompt = tk.StringVar()
+
+        # Creating an entry widget for user input and a textbox widget for additional input
+        self.entry_widget = ctk.CTkEntry(frame, width=500, height=50, corner_radius=50, textvariable=self.prompt)
+        self.textbox_widget = ctk.CTkTextbox(frame, width=500, height=100, corner_radius=10)
+
+        # Setting focus on both widgets to prepare for user input
+        self.entry_widget.focus_set()
+        self.textbox_widget.focus_set()
+
+        # Registering the widgets to accept drag-and-drop events
+        self.entry_widget.drop_target_register(DND_ALL)
+        self.textbox_widget.drop_target_register(DND_ALL)
+
+        # Binding drag-and-drop event handlers to process dropped content
+        self.entry_widget.dnd_bind('<<Drop>>', lambda e: self.handleDropEvent(e))
+        self.textbox_widget.dnd_bind('<<Drop>>', lambda e: self.handleDropEvent(e))
+
+        # Placing the entry widget with spacing
+        self.entry_widget.pack(pady=20)
+
+        # Checking if the current frame is the speech input section and binding relevant events
+        if frame == self.speech_body:
+            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box)
+            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box)
+            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box)
+        
+        # Checking if the current frame is the text input section and binding relevant events
+        if frame == self.text_body:
+            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
+            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box_text)
+            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
+            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
+    
+    def get_conversation_content_for_text_chat(self):
+        """
+        Retrieves and displays the conversation history for the text-based chat.
+        Clears previous messages before dynamically generating UI components for each message.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        # Removing all existing children widgets from the scroll frame
+        for item in self.scroll_frame.winfo_children():
+            item.destroy()
+
+        # Getting the conversation history
+        self.conversation = self.utilities.conversation.conversation_history
+
+        # Adding spacing at the top of the chat display
+        tk.Frame(self.scroll_frame, height=50).pack(side='top')
+        
+        # Iterating through conversation history and displaying messages
+        for i in range(len(self.conversation)):
+            if self.conversation[i]['role'] in ['system', 'tool']:
+                continue
+            
+            elif self.conversation[i]['role'] == 'user':
+                # Creating and configuring a textbox for user messages
+                self.input_label = ctk.CTkTextbox(
+                    self.scroll_frame,
+                    wrap="word",
+                    fg_color=self.purple_palette[4],
+                    corner_radius=10,
+                    font=("Arial", 14),
+                    width=int(self.wrap_length(0.5)),
+                    height=5,
+                )
+                # Inserting and disabling text for display
+                self.input_label.configure(state="normal")
+                self.input_label.insert("1.0", self.conversation[i]['content'])
+                self.input_label.configure(state="disabled") 
+                self.adjust_textbox_height(self.input_label)
+                self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e')
+            
+            else:
+                # Creating and configuring a textbox for assistant responses
+                self.response_label = ctk.CTkTextbox(
+                    self.scroll_frame,
+                    wrap="word",
+                    fg_color=self.purple_palette[6],
+                    corner_radius=10,
+                    font=("Arial", 14),
+                    width=int(self.wrap_length(0.5)),
+                    height=5,
+                )
+                # Inserting and disabling text for display
+                self.response_label.configure(state="normal")
+                self.response_label.insert("1.0", self.conversation[i]['content'])
+                self.response_label.configure(state="disabled") 
+                self.adjust_textbox_height(self.response_label)
+                self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w')
+
+        # Scrolling to the end of the conversation to show the latest message
+        self.auto_scroll_to_end()
+        
+        # Adding spacing at the bottom of the chat display
+        tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
+
+    def place_file_tag(self, e):
+        """
+        Positions the file tag within the window dynamically based on window resizing.
+        Adjusts placement depending on whether the window is maximized or resized.
+
+        Args:
+            e (tk.Event): The event object containing window size information.
+
+        Returns:
+            None
+        """
+        if self.file_tag and self.file_tag.winfo_exists():
+            width = e.width
+            height = e.height
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+            
+            # Checking the window size and repositioning the file tag accordingly
+            if window_width == width or window_height == height:
+                self.file_tag.place(relx=0.15, rely=0.8)
+            else:
+                self.file_tag.place(relx=0.1, rely=0.8)
+
+    def handleDropEvent(self, e):
+        """
+        Handles the event when a file is dropped onto the application.
+        
+        Args:
+            e (tkinter.Event): The event object containing information about the drop event.
+        
+        Returns:
+            None
+        """
+        frame = e.widget  # Getting the widget where the file was dropped
+        data = e.data.strip("{}")  # Extracting the file path
+        file_extension = Path(data).suffix.replace('.', '').upper()  # Getting the file extension in uppercase
+        
+        # Checking if the file extension is supported
+        if file_extension.lower() not in list(self.file_type_colors.keys()):
+            print(file_extension.lower(), list(self.file_type_colors.keys()))
+            messagebox.showinfo("Alert", "The Only Supported Types are Images or Audio.")
+            return 
+        
+        # Getting the color associated with the file type
+        color = self.file_type_colors.get(file_extension.lower(), 'gray') 
+        
+        try:
+            # Checking if the file tag label exists or needs to be created
+            if not self.file_tag or not self.file_tag.winfo_exists():  
+                self.file_tag = ctk.CTkLabel(
+                    self.speech_body if self.speech_body.winfo_exists() else self.text_body if self.text_body.winfo_exists() else frame,  
+                    font=('Arial Black', 16, 'bold'),
+                    width=50,
+                    height=70,
+                    corner_radius=20,
+                    text=file_extension,
+                    fg_color=color
+                )
+            else:
+                # Updating the label text and color if it already exists
+                self.file_tag.configure(text=file_extension, fg_color=color)
+            
+            # Bringing the label to the top of the UI
+            self.file_tag.lift()
+            self.file_tag.bind("<Button-1>", lambda e: self.destroy_tag())
+            
+            # Positioning the file tag on the screen
+            self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
+            
+            # Sending the file to the LLM for processing
+            self.send_file_to_llm(data, file_extension)
+        except TclError as error:
+            print(f"Error handling drop event: {error}")
+
+    def destroy_tag(self, e=None):
+        """
+        Destroys the file tag when it is clicked.
+        
+        Args:
+            e (tkinter.Event, optional): The event object (defaults to None).
+        
+        Returns:
+            None
+        """
+        print("Destroying Tag")
+        self.file_tag.place_forget()  # Hiding the tag from the UI
+        self.file_tag.destroy()  # Removing the tag widget
+        self.extra_func_args = {}  # Resetting extra function arguments
+
+    def send_file_to_llm(self, path, extension):
+        """
+        Sends the dropped file to an LLM for analysis based on its type.
+        
+        Args:
+            path (str): The file path of the dropped file.
+            extension (str): The file extension in lowercase.
+        
+        Returns:
+            dict: The arguments prepared for LLM processing.
+        """
+        extension = extension.lower()
+        
+        # Setting up the function arguments based on file type
+        self.extra_func_args = {
+            'extra_prompt': '',
+            'path': path,
+            'extra_utilities_class': self.utilities,
+            'func': None,
+            'type': ''
+        }
+        
+        # Assigning the appropriate function for image or audio processing
+        if extension in {'png', 'jpeg', 'jpg'}:
+            self.extra_func_args['type'] = 'image'
+            self.extra_func_args['func'] = ai_image_analysis
+        elif extension in {'mp3', 'wav'}: 
+            self.extra_func_args['func'] = ai_sound_analysis
+            self.extra_func_args['type'] = 'sound'
+        
+        print("Sending File:", path, "to llm...", "\n", self.extra_func_args)
+        
+        return self.extra_func_args
+
+    def on_resize(self, event):
+        """
+        Handles window resize events by repositioning the file tag.
+        
+        Args:
+            event (tkinter.Event): The event object containing resize details.
+        
+        Returns:
+            None
+        """
+        e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
+        self.place_file_tag(e)
+
+    def toggle_prompt_box(self, e):
+        """
+        Toggles between an entry widget and a textbox widget based on text length.
+        
+        Args:
+            e (tkinter.Event): The event object triggering the toggle.
+        
+        Returns:
+            None
+        """
+        current_text = self.prompt.get()
+        current_textbox_content = self.textbox_widget.get("1.0", tk.END).strip()
+
+        # Switching to the textbox if text length exceeds the threshold
+        if len(current_text) >= 75 and self.entry_widget.winfo_ismapped():
+            self.entry_widget.pack_forget()
+            self.textbox_widget.delete("1.0", tk.END)  
+            self.textbox_widget.insert("1.0", current_text)  # Moving text to the textbox
+            self.textbox_widget.focus_set()
+            self.textbox_widget.pack(pady=20)
+
+        # Switching back to the entry widget if text length decreases
+        elif len(current_textbox_content) < 75 and self.textbox_widget.winfo_ismapped():
+            self.textbox_widget.pack_forget()
+            self.entry_widget.focus_set()
+            self.prompt.set(current_textbox_content)  
+            self.entry_widget.pack(pady=20)
+
+    def get_prompt_from_text_box(self, e):
+        """
+        Retrieves user input from the appropriate text widget (entry or textbox), clears the widget, and processes the input.
+        
+        Args:
+            e: Event trigger (not used but required for event binding).
+        """
+        if self.entry_widget.winfo_ismapped(): 
+            # Getting input from the entry widget
+            self.user_prompt = self.prompt.get()
+            self.prompt.set("")
+        else:
+            # Getting input from the textbox widget
+            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
+            self.textbox_widget.delete("1.0", tk.END)
+            self.prompt.set("")
+            # Hiding the textbox and switching focus to the entry widget
+            self.textbox_widget.pack_forget()
+            self.entry_widget.focus_set()
+            self.entry_widget.pack(pady=20)
+        
+        # Executing the function with or without extra arguments
+        if self.extra_func_args:
+            self.extra_func_args['extra_prompt'] = self.user_prompt
+            print(self.extra_func_args)
+            self.pulser.speech(ai_function_execution(
+                self.user_prompt, tools, available_functions, self.utilities,
+                extra_func=self.extra_func_args['func'], 
+                **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}
+            ), self.speech_voice)
+        else:
+            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
+        
+    def get_prompt_from_text_box_text(self, e):
+        """
+        Retrieves user input from the appropriate text widget, displays it in the UI, and generates a response.
+        
+        Args:
+            e: Event trigger (not used but required for event binding).
+        """
+        if not self.conversation or not self.utilities.conversation.conversation_history:
+            self.toggle_conversation()
+        
+        if self.entry_widget.winfo_ismapped(): 
+            # Getting input from the entry widget
+            self.user_prompt = self.prompt.get()
+            self.prompt.set("")
+        else:
+            # Getting input from the textbox widget
+            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
+            self.textbox_widget.delete("1.0", tk.END)
+            self.prompt.set("")
+            # Hiding the textbox and switching focus to the entry widget
+            self.textbox_widget.pack_forget()
+            self.entry_widget.focus_set()
+            self.entry_widget.pack(pady=20)
+
+        # Creating a textbox to display user input
+        self.input_label = ctk.CTkTextbox(
+            self.scroll_frame,
+            wrap="word",
+            fg_color=self.purple_palette[4], 
+            corner_radius=10,  
+            font=("Arial", 14),  
+            width=int(self.wrap_length(0.5)),  
+            height=5,  
+        )
+        self.input_label.configure(state="normal")
+        self.input_label.insert("1.0", self.user_prompt)
+        self.input_label.configure(state="disabled") 
+        self.adjust_textbox_height(self.input_label)
+        self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
+        
+        # Creating a textbox to display AI-generated response
+        self.response_label = ctk.CTkTextbox(
+            self.scroll_frame,
+            wrap="word",
+            fg_color=self.purple_palette[6],
+            corner_radius=10,
+            font=("Arial", 14),
+            width=int(self.wrap_length(0.5)),
+            height=5,
+        )
+        self.response_label.configure(state="normal")
+        
+        # Executing the function with or without extra arguments
+        if self.extra_func_args:
+            self.extra_func_args['extra_prompt'] = self.user_prompt
+            print(self.extra_func_args)
+            self.response_label.insert("1.0", ai_function_execution(
+                self.user_prompt, tools, available_functions, self.utilities,
+                extra_func=self.extra_func_args['func'], 
+                **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}
+            ))
+        else:
+            self.response_label.insert("1.0", ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
+        
+        self.response_label.configure(state="disabled") 
+        self.adjust_textbox_height(self.response_label)
+        self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
+        self.auto_scroll_to_end()
+
+    def adjust_textbox_height(self, textbox):
+        """
+        Adjusts the height of a textbox dynamically based on its content.
+        
+        Args:
+            textbox: The textbox widget whose height needs to be adjusted.
+        """
+        text_content = textbox.get("1.0", "end").strip()
+
+        if not text_content:
+            textbox.configure(height=1)
+            return
+
+        # Getting the pixel width of the textbox
+        textbox_width = textbox.winfo_width()
+
+        if textbox_width == 1:  # Avoiding incorrect width value before rendering
+            textbox.after(10, lambda: self.adjust_textbox_height(textbox))
+            return
+
+        # Estimating character width in pixels (depends on font size and style)
+        char_width = 7  # Adjust this value based on the actual font width
+        max_chars_per_line = textbox_width // char_width
+
+        # Calculating the number of lines required
+        lines = sum(max(1, -(-len(paragraph) // max_chars_per_line)) for paragraph in text_content.split("\n"))
+
+        # Setting new height based on the estimated number of lines
+        line_height = 18  # Approximate height of each line
+        new_height = ((lines * line_height)) 
+        new_height -= (0.1 * new_height)  # Adding a margin for a better fit
+        textbox.configure(height=new_height)
+        self.auto_scroll_to_end()
+
+    def wrap_length(self, rel_width):
+        """
+        Calculates the wrap length for text elements based on a relative width of the window.
+        
+        Args:
+            rel_width (float): A value representing the width as a fraction of the window width.
+        
+        Returns:
+            int: The calculated wrap length in pixels.
+        """
+        return rel_width * self.winfo_width()
+
+
+
+
+    def nav_buttons(self):
+        """
+        Creates and places navigation buttons for page selection.
+
+        This function generates two navigation buttons labeled "Page 1" and "Page 2" 
+        and places them in the `page_frame`. When clicked, each button calls 
+        `self.change_page(idx)` with the corresponding page index.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        for idx in range(2):
+            nav_button = ctk.CTkButton(
+                self.page_frame, 
+                text='Page ' + str(idx + 1), 
+                command=lambda idx=idx: self.change_page(idx),  # Passing idx to lambda to avoid late binding issues
+                fg_color=self.purple_palette[-1],  # Setting button color
+                hover_color=self.purple_palette[4]  # Setting hover effect color
+            )
+            nav_button.pack(side='left', expand=True)  # Placing buttons horizontally
+
+
 
     
+# Color Palette for Devlopment
 
-    def conversation_modal(self, edit=False, current_conversation_title_path="", callback=None):
+    def _color_palette(self):
+        """
+        Displays a window showcasing the color palette for development.
+
+        This function creates a temporary `Toplevel` window displaying a scrollable 
+        list of the colors defined in `self.purple_palette`. Each color is shown 
+        as a labeled background, providing a quick preview of the available shades.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        # Creating a top-level window to display the color palette
+        toast_window = tk.Toplevel(self)
+        toast_window.attributes('-fullscreen', False)  # Ensuring it's not fullscreen
+        toast_window.grab_set()  # Making it modal (prevents interaction with the main window)
+        toast_window.geometry("400x400+300+300")  # Setting window size and position
+
+        # Creating a scrollable frame inside the window
+        sk = ctk.CTkScrollableFrame(toast_window)
+
+        # Iterating over the defined color palette to display each color
+        for idx, i in enumerate(self.purple_palette):
+            toast_label = tk.Label(
+                sk, 
+                text=f"Color {i}, Index {idx}",  # Displaying color value and index
+                bg=i,  # Setting the background color
+                fg="white", 
+                font=("Arial", 12, "bold"), 
+                padx=10, 
+                pady=20
+            )
+            toast_label.pack(fill='both')  # Ensuring the label expands
+
+        sk.pack(fill="both", expand=True)  # Expanding the scrollable frame
+
+# Input modals for various input types, or taos notifications.
+
+    def toast(self, message: str, position: str = "top") -> None:
+        """
+        Displays a temporary toast notification with a message.
+
+        Args:
+            message (str): The message to display in the toast notification.
+            position (str, optional): The vertical position of the toast ('top' or 'bottom'). Defaults to 'top'.
+        """
+        # Creating a top-level window for the toast notification
+        toast_window = tk.Toplevel(self)
+        toast_window.attributes('-fullscreen', False)
+        toast_window.grab_set()
+        toast_window.overrideredirect(True)  # Removing window borders
+        
+        # Setting a temporary position to allow proper size calculation
+        toast_window.geometry("+0+0")
+        
+        # Creating a label widget for the message
+        toast_label = tk.Label(
+            toast_window, text=message, bg=self.purple_palette[4], fg="white",
+            font=("Arial", 12, "bold"), padx=10, pady=5
+        )
+        toast_label.pack()
+        
+        # Updating the window to get actual dimensions
+        toast_window.update_idletasks()
+        toast_width = toast_window.winfo_width()
+        toast_height = toast_window.winfo_height()
+        
+        # Getting main window position and size
+        window_width = self.winfo_width()
+        window_height = self.winfo_height()
+        window_x = self.winfo_x()
+        window_y = self.winfo_y()
+        
+        # Calculating centered position for the toast
+        x_pos = window_x + (window_width // 2) - (toast_width // 2)
+        if position == "top":
+            y_pos = window_y + 30  # Offset from top
+        else:
+            y_pos = window_y + window_height - toast_height - 30  # Offset from bottom
+        
+        # Applying final position
+        toast_window.geometry(f"{toast_width}x{toast_height}+{x_pos}+{y_pos}")
+        
+        # Destroying the toast window after 2 seconds
+        self.after(2000, toast_window.destroy)
+
+    def conversation_modal(self, edit: bool = False, current_conversation_title_path: str = "", callback = None) -> None:
+        """
+        Creates and displays a modal window for entering or editing a conversation title.
+
+        Args:
+            edit (bool, optional): Indicates whether the modal is for editing an existing title. Defaults to False.
+            current_conversation_title_path (str, optional): The file path of the current conversation title. Defaults to "".
+            callback (function, optional): A function to call with the new title. Defaults to None.
+        """
         self.modal = tk.Toplevel(self)
-        # Ensure it does not go fullscreen
-        self.modal.withdraw()  # Hide the window while setting properties
-        self.modal.attributes('-fullscreen', False)  
-        self.modal.overrideredirect(False)  # Ensure normal window behavior
+        self.modal.withdraw()  # Hiding window while setting properties
+        self.modal.attributes('-fullscreen', False)
+        self.modal.overrideredirect(False)
+        self.modal.grab_set()  # Making the modal the active window
         
-        # Make the modal the active window
-        self.modal.grab_set()
-        self.modal.title("")
-        
-        # Set size and center it
+        # Setting size and centering the modal
         width, height = 500, 200
         x_pos = (self.modal.winfo_screenwidth() // 2) - (width // 2)
         y_pos = (self.modal.winfo_screenheight() // 2) - (height // 2) - 50
         self.modal.geometry(f"{width}x{height}+{x_pos}+{y_pos}")
-
-        # Show the modal after applying fixes
+        
         self.modal.deiconify()
-
         self.modal.configure(bg=self.purple_palette[4])
+        
+        # Creating layout frames
         topFrame = tk.Frame(self.modal, background=self.purple_palette[9])
-        middleFrame = tk.Frame(self.modal, )
+        middleFrame = tk.Frame(self.modal)
         bottomFrame = tk.Frame(self.modal, background=self.purple_palette[10])
-
+        
         topFrame.place(relx=0, rely=0, relwidth=1, relheight=0.2)
         middleFrame.place(relx=0, rely=0.2, relwidth=1, relheight=0.7)
         bottomFrame.place(relx=0, rely=0.7, relwidth=1, relheight=0.3)
-
+        
+        # Determining conversation title
         current_conversation_title = current_conversation_title_path.replace('.json', "")[45:] if not edit else "New Conversation Title"
-
-
+        
+        # Creating title and date labels
         self.conversation_modal_title = ctk.CTkLabel(topFrame, text=current_conversation_title, fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='w')
         self.conversation_modal_title.pack(fill='both', expand=True, padx=10, side='left')
-
         
         self.conversation_modal_date = ctk.CTkLabel(topFrame, text=datetime.now().strftime("%b %d, %Y"), fg_color=self.purple_palette[9], font=("Arial Black", 12, 'bold'), anchor='e')
         self.conversation_modal_date.pack(fill='both', expand=True, padx=10, side='right')
-
-
-        self.conversation_modal_text_box = ctk.CTkTextbox(middleFrame, fg_color=self.purple_palette[9], border_color=self.purple_palette[9], )
+        
+        # Creating text box
+        self.conversation_modal_text_box = ctk.CTkTextbox(middleFrame, fg_color=self.purple_palette[9], border_color=self.purple_palette[9])
         self.textbox_placeholder("Enter Conversation Title Here...")
         self.conversation_modal_text_box.pack(fill='both', expand=True)
-
-
+        
+        # Creating submit button
         self.conversation_modal_submit_button = ctk.CTkButton(bottomFrame, text="Submit", fg_color=self.purple_palette[13], hover_color=self.purple_palette[12], corner_radius=20, font=("Arial Black", 12, 'bold'), anchor='center', command=lambda: self.get_title_from_modal(edit, callback, current_conversation_title_path))
         self.conversation_modal_submit_button.pack(fill='both', pady=10, padx=10, side='right')
-        
 
-    def get_title_from_modal(self, edit, callback, current_conversation_title_path=""):
+    def get_title_from_modal(self, edit: bool, callback, current_conversation_title_path: str = "") -> None:
+        """
+        Retrieves the entered conversation title and applies necessary updates.
+        
+        Args:
+            edit (bool): Indicates whether the title is being edited.
+            callback (function): Function to handle the new title.
+            current_conversation_title_path (str, optional): The file path of the current conversation title. Defaults to "".
+        """
         title = self.conversation_modal_text_box.get(0.0, "end").strip()
         if title and edit:
             self.edit_title(title, current_conversation_title_path)
-        if title and callback is not None:
+        if title and callback:
             callback(title.replace(" ", "-"))
-            print("New Title:", title)
         self.modal.destroy()
+    
+    def textbox_placeholder(self, placeholder_text: str) -> None:
+        """
+        Sets a placeholder text inside the text box and ensures it disappears on focus.
 
-    def edit_title(self, title, current_conversation_title_path):
-        path_title = current_conversation_title_path.replace("Conversations/", "").split("_")[-1].replace(".json", "")
-        new_title_path = current_conversation_title_path.replace(path_title, title.replace(" ", "-"))
-        os.rename(current_conversation_title_path, new_title_path)
-
-        with open("Conversations/.current_conversation_file_name.txt", 'r+') as rw:
-            curr = rw.read()
-            if curr == current_conversation_title_path:
-                rw.seek(0)
-                rw.write(new_title_path)
-                rw.truncate()
-        self.place_conversations_list()
-        self.scroll_frame_content()
-
-
-
-    def textbox_placeholder(self, placeholder_text):
+        Args:
+            placeholder_text (str): The placeholder text to display.
+        """
         self.conversation_modal_text_box.insert("1.0", placeholder_text)
         
         def clear_placeholder(event):
@@ -666,465 +1596,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
         self.conversation_modal_text_box.bind("<FocusOut>", set_placeholder)
 
 
-# ================================================================
-
-
-    def place_file_tag(self, e):
-        if self.file_tag and self.file_tag.winfo_exists():
-            width = e.width
-            height = e.height
-            window_width = self.winfo_width()
-            window_height = self.winfo_height()
-            # Check window size and reposition the label accordingly
-            if window_width == width or window_height == height:
-                self.file_tag.place(relx=0.15, rely=0.8)
-            else:
-                self.file_tag.place(relx=0.1, rely=0.8)
-
-
-
-    def handleDropEvent(self, e):
-        frame = e.widget  
-        data = e.data.strip("{}")
-        file_extension = Path(data).suffix.replace('.', '').upper()
-        if file_extension.lower() not in list(self.file_type_colors.keys()):
-            print(file_extension.lower(), list(self.file_type_colors.keys()))
-            messagebox.showinfo("Alert", "The Only Supported Types are Images or Audio.")
-            return 
-        
-        
-        color = self.file_type_colors.get(file_extension.lower(), 'gray') 
-        try:
-            if not self.file_tag or not self.file_tag.winfo_exists():  
-                self.file_tag = ctk.CTkLabel(
-                    self.speech_body if self.speech_body.winfo_exists() else self.text_body if self.text_body.winfo_exists() else frame,  
-                    font=('Arial Black', 16, 'bold'),
-                    width=50,
-                    height=70,
-                    corner_radius=20,
-                    text=file_extension,
-                    fg_color=color
-                )
-            else:
-                # Update existing label content and color
-                self.file_tag.configure(text=file_extension, fg_color=color)
-            # Ensure the label is visible
-            self.file_tag.lift()  # Bring the label to the top
-            self.file_tag.bind("<Button-1>", lambda e : self.destroy_tag())
-            self.place_file_tag(Size(self.winfo_screenwidth(), self.winfo_screenheight()))
-            self.send_file_to_llm(data, file_extension)
-        except TclError as error:
-            print(f"Error handling drop event: {error}")
-
-
-    def destroy_tag(self, e=None):
-        print("Destroying Tag")
-        self.file_tag.place_forget()
-        self.file_tag.destroy()
-        self.extra_func_args = {}
-
-
-    def send_file_to_llm(self, path, extension):
-        extension=extension.lower()
-        self.extra_func_args = {
-            'extra_prompt': '',
-            'path': path,
-            'extra_utilities_class': self.utilities,
-            'func': None,
-            'type': ''
-        }
-        if extension in {'png', 'jpeg', 'jpg'}:
-            self.extra_func_args['type'] = 'image'
-            self.extra_func_args['func'] = ai_image_analysis
-        elif extension in {'mp3', 'wav'}: 
-            self.extra_func_args['func'] = ai_sound_analysis
-            self.extra_func_args['type'] = 'sound'
-
-        # if '20MB or image size stop': 3
-
-        print("Sending File:", path , "to llm...", "\n", self.extra_func_args)
-
-        return self.extra_func_args
-
-# ================================================================
-
-
-    def chatbar(self, frame):
-        self.prompt = tk.StringVar()
-
-        self.entry_widget = ctk.CTkEntry(frame, width=500, height=50, corner_radius=50, textvariable=self.prompt)
-        self.textbox_widget = ctk.CTkTextbox(frame, width=500, height=100, corner_radius=10)
-
-
-        self.entry_widget.focus_set()
-        self.textbox_widget.focus_set()
-
-        self.entry_widget.drop_target_register(DND_ALL)
-        self.textbox_widget.drop_target_register(DND_ALL)
-
-        self.entry_widget.dnd_bind('<<Drop>>', lambda e : self.handleDropEvent(e))
-        self.textbox_widget.dnd_bind('<<Drop>>', lambda e : self.handleDropEvent(e))
-
-        self.entry_widget.pack(pady=20)
-
-        if frame == self.speech_body:
-            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
-            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
-            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box)
-            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box)
-            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box)
-        if frame == self.text_body:
-            self.entry_widget.bind("<KeyRelease>", self.toggle_prompt_box)
-            self.textbox_widget.bind("<KeyRelease>", self.toggle_prompt_box)
-            self.textbox_widget.bind("<Command-Return>", self.get_prompt_from_text_box_text)
-            self.textbox_widget.bind("<Control-Return>", self.get_prompt_from_text_box_text)
-            self.entry_widget.bind("<Return>", self.get_prompt_from_text_box_text)
-        
-
-
-
-    def on_resize(self, event):
-        # Reposition the file_tag when the window is resized
-        e = Size(self.winfo_screenwidth(), self.winfo_screenheight())
-        self.place_file_tag(e)
-
-    def toggle_prompt_box(self, e):
-        current_text = self.prompt.get()
-        current_textbox_content = self.textbox_widget.get("1.0", tk.END).strip()
-
-        # Switch to the textbox if text length exceeds 4
-        if len(current_text) >= 75 and self.entry_widget.winfo_ismapped():
-            # Switch to the textbox
-            self.entry_widget.pack_forget()
-            self.textbox_widget.delete("1.0", tk.END)  
-            self.textbox_widget.insert("1.0", current_text)  # Insert new text
-            self.textbox_widget.focus_set()
-            self.textbox_widget.pack(pady=20)
-
-        # Switch back to the entry widget if text length drops below 4
-        elif len(current_textbox_content) < 75 and self.textbox_widget.winfo_ismapped():
-            # Switch back to the entry widget
-            self.textbox_widget.pack_forget()
-            self.entry_widget.focus_set()
-            self.prompt.set(current_textbox_content)  
-            self.entry_widget.pack(pady=20)
-
-    def toggle_main_menu_button(self):
-        if self.main_menu_button_visible:
-            self.maintoggle_button.place(relx=0, rely=0, relwidth=0.3, relheight=1.0) 
-        else:
-            self.maintoggle_button.place_forget()
-
-    def get_prompt_from_text_box(self, e):
-        if self.entry_widget.winfo_ismapped(): 
-            self.user_prompt = self.prompt.get()
-            self.prompt.set("")
-        else:
-            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.textbox_widget.delete("1.0", tk.END) 
-            self.prompt.set("")
-            self.textbox_widget.pack_forget()
-            self.entry_widget.focus_set()
-            self.entry_widget.pack(pady=20)
-            
-        if self.extra_func_args:
-            self.extra_func_args['extra_prompt'] = self.user_prompt
-            print(self.extra_func_args)
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}), self.speech_voice)
-        else:
-            self.pulser.speech(ai_function_execution(self.user_prompt, tools, available_functions, self.utilities), self.speech_voice)
-        
-        
-
-
-
-
-    def text_chat(self):
-        try:
-            self.text_chat_frame = tk.Frame(self.page_frame)
-            self.side_panel_creator(self.text_chat_frame)
-            self.main_text_content = tk.Frame(self.text_chat_frame, )
-            self.main_text_content_content()
-            self.main_text_content.place_configure(relwidth=1.0, relx=0, rely=0, relheight=1.0)
-            self.text_chat_frame.pack(fill='both', expand=True)
-        except:
-            print("Not In Existance (Text Chat)")
-
-
-
-
-    def main_text_content_content(self):
-        self.topbar(self.main_text_content)
-
-        # Setup body
-        self.text_body = tk.Frame(self.main_text_content, background=self.purple_palette[13])
-
-        self.scroll_frame = ctk.CTkScrollableFrame(self.text_body, corner_radius=0, fg_color=self.purple_palette[13])
-        
-
-        self.scroll_frame.drop_target_register(DND_ALL)
-        self.scroll_frame.dnd_bind('<<Drop>>', self.handleDropEvent)
-
-
-        tk.Frame(self.scroll_frame, height=50, bg=self.purple_palette[13]).pack(side='top')
-        self.scroll_frame_content()
-
-
-        self.scroll_frame.pack(fill='both', expand=True)
-
-        self.bind("<Command-Up>", self.scroll_to_top)
-        self.bind("<Command-Down>", self.auto_scroll_to_end)
-        self.bind("<Control-Up>", self.scroll_to_top)
-        self.bind("<Control-Down>", self.auto_scroll_to_end)
-
-
-        self.chatbar(self.text_body)
-
-        self.button_frame = ctk.CTkFrame(self.text_body, corner_radius=50, width=60, height=60, fg_color=self.purple_palette[9])
-
-        self.button_frame.place(relx=.85, rely=.8)
-        self.button_frame.pack_propagate(False) 
-
-        self.button_frame.bind("<Button-1>", self.scroll_button_method)
-
-        self.scroll_button = ctk.CTkButton(self.button_frame, text="▲", font=("Segoe UI Symbol", 24), width=0, height=60, fg_color=self.purple_palette[9], hover_color=self.purple_palette[9], command=self.scroll_button_method)
-        self.scroll_button.pack()
-
-        self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
-        
-
-
-    def scroll_frame_content(self):
-        try:
-            with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
-                current_file = f.read()
-            self.open_conversation(conversation_to_open=current_file)
-        except:
-            pass
- 
-    
-
-
-
-    def toggle_conversation(self, e=None):
-        self.utilities.conversation.move_file = True
-        self.utilities.conversation.create_new_conversation()
-        print("New Conversation Should Start here!!!")
-        self.utilities.conversation.move_file = False
-        self.place_conversations_list()
-        self.scroll_frame_content()
-
-    
-
-
-
-    def get_prompt_from_text_box_text(self, e):
-        if not self.conversation or not self.utilities.conversation.conversation_history:
-            self.toggle_conversation()
-        if self.entry_widget.winfo_ismapped(): 
-            self.user_prompt = self.prompt.get()
-            self.prompt.set("")
-        else:
-            self.user_prompt = self.textbox_widget.get("1.0", tk.END).strip()
-            self.textbox_widget.delete("1.0", tk.END) 
-            self.prompt.set("")
-            self.textbox_widget.pack_forget()
-            self.entry_widget.focus_set()
-            self.entry_widget.pack(pady=20)
-
-        self.input_label = ctk.CTkTextbox(
-                    self.scroll_frame,
-                    wrap="word",
-                    fg_color=self.purple_palette[4], 
-                    corner_radius=10,  
-                    font=("Arial", 14),  
-                    width=int(self.wrap_length(0.5)),  
-                    height=5,  
-                )
-
-        self.input_label.configure(state="normal")
-        self.input_label.insert("1.0", self.user_prompt)
-        self.input_label.configure(state="disabled") 
-        self.adjust_textbox_height(self.input_label)
-        self.input_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='e') 
-        
-        self.response_label = ctk.CTkTextbox(
-            self.scroll_frame,
-            wrap="word",  # Similar to wraplength
-            fg_color=self.purple_palette[6],  # Background color
-            corner_radius=10,  # Rounded corners
-            font=("Arial", 14),  # Set font to match label style
-            width=int(self.wrap_length(0.5)),  # Match previous wrap length
-            height=5,  # Set height dynamically as needed
-        )
-
-        # self.response_label.configure(state="disabled")
-        self.response_label.configure(state="normal")
-        if self.extra_func_args:
-            self.extra_func_args['extra_prompt'] = self.user_prompt
-            print(self.extra_func_args)
-            self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']}))
-        else:
-            self.response_label.insert("1.0",  ai_function_execution(self.user_prompt, tools, available_functions, self.utilities))
-        self.response_label.configure(state="disabled") 
-        self.adjust_textbox_height(self.response_label)
-        self.response_label.pack(ipadx=5, ipady=20, padx=40, pady=10, anchor='w') 
-
-
-        
-        # self.slider(self.response_label)
-        self.auto_scroll_to_end()
-
-
-
-    def scroll_button_method(self, e=None):
-        direction = self.scroll_button.cget('text')
-        if direction == '▲':
-            self.scroll_to_top()
-            self.scroll_button.configure(text = '▼')
-        else:
-            self.auto_scroll_to_end()
-            self.scroll_button.configure(text = '▲')
-
-
-
-    def adjust_textbox_height(self, textbox):
-        """Dynamically resize the textbox height based on its content, like a Label."""
-        text_content = textbox.get("1.0", "end").strip()
-
-        if not text_content:
-            textbox.configure(height=1)
-            return
-
-        # Get the pixel width of the textbox
-        textbox_width = textbox.winfo_width()  
-
-        if textbox_width == 1:  # Sometimes width is 1 before rendering, so skip
-            textbox.after(10, lambda: self.adjust_textbox_height(textbox))
-            return
-
-        # Estimate character width using font size (assuming monospaced font)
-        char_width = 7  # Adjust based on actual font width in pixels
-        max_chars_per_line = textbox_width // char_width
-
-        # Count how many lines the text will take up
-        lines = 0
-        for paragraph in text_content.split("\n"):
-            lines += max(1, -(-len(paragraph) // max_chars_per_line))  # Ceiling division
-
-        # Approximate line height
-        line_height = 18  # Depends on font size
-        padding = 0  # Extra space
-
-        new_height = ((lines * line_height) + padding) 
-        new_height -= (0.1 * new_height)
-        textbox.configure(height=new_height)
-        self.auto_scroll_to_end()
-
-
-
-
-    def auto_scroll_to_end(self, e=None):
-        self.scroll_frame._scrollbar.set(*self.scroll_frame._parent_canvas.yview())
-        self.scroll_frame._parent_canvas.configure(yscrollcommand=self.scroll_frame._scrollbar.set, scrollregion=self.scroll_frame._parent_canvas.bbox('all'))
-        self.scroll_frame._parent_canvas.yview_moveto(1.0)
-
-    def scroll_to_top(self, event=None):
-        self.scroll_frame._parent_canvas.yview_moveto(0.0)
-
-    def wrap_length(self, rel_width):
-        return rel_width * self.winfo_width()
-        
-    def nav_buttons(self):
-        for idx in range(2):
-            nav_button = ctk.CTkButton(
-                self.page_frame, 
-                text='Page ' + str(idx + 1), 
-                command=lambda idx=idx: self.change_page(idx), 
-                fg_color=self.purple_palette[-1],
-                hover_color=self.purple_palette[4]
-            )
-            nav_button.pack(side='left', expand=True)
-
-    def change_page(self, idx):
-        self.clear_page(self.page_frame)
-        self.set_current_page_index(idx)
-        self.pages[self.current_page_index]()
-        self.page_frame.pack(fill='both', expand=True)
-        self.side_panel_visible=not self.side_panel_visible
-        self.toggle_side_panel()
-        self.nav_buttons()
-
-    def set_current_page_index(self, index):
-        self.current_page_index = index
-
-    def toast(self, message, position="top"):
-        # Create a topmost window for the toast notification
-        toast_window = tk.Toplevel(self)
-        toast_window.attributes('-fullscreen', False)
-        toast_window.grab_set()
-        toast_window.overrideredirect(True)  # Remove window borders
-
-        # Set a temporary position to allow proper size calculation
-        toast_window.geometry("+0+0")
-
-        # Create a label widget for the message
-        toast_label = tk.Label(
-            toast_window, text=message, bg=self.purple_palette[4], fg="white",
-            font=("Arial", 12, "bold"), padx=10, pady=5
-        )
-        toast_label.pack()
-
-        # Update to get actual dimensions
-        toast_window.update_idletasks()  # Forces geometry recalculation
-        toast_width = toast_window.winfo_width()
-        toast_height = toast_window.winfo_height()
-
-        # Get main window position & size
-        window_width = self.winfo_width()
-        window_height = self.winfo_height()
-        window_x = self.winfo_x()
-        window_y = self.winfo_y()
-
-        # Recalculate centered position
-        x_pos = window_x + (window_width // 2) - (toast_width // 2)
-        if position == "top":
-            y_pos = window_y + 30  # Offset from top
-        else:  # Bottom
-            y_pos = window_y + window_height - toast_height - 30  # Offset from bottom
-
-        # Apply final position
-        toast_window.geometry(f"{toast_width}x{toast_height}+{x_pos}+{y_pos}")
-
-        # Destroy the toast window after 2 seconds
-        self.after(2000, toast_window.destroy)
-
-
-    
-
-    def color_palette(self):
-        # Create a topmost window for the toast notification
-        toast_window = tk.Toplevel(self)
-        toast_window.attributes('-fullscreen', False)  
-        toast_window.grab_set()
-
-        toast_window.geometry("400x400+300+300")
-        
-
-        # Create a label widget for the message
-
-        sk = ctk.CTkScrollableFrame(toast_window)
-
-        for idx, i in enumerate(self.purple_palette):
-            toast_label = tk.Label(sk, text=f"Color {i}, Index {idx}", bg=i, fg="white", font=("Arial", 12, "bold"), padx=10, pady=20, )
-            toast_label.pack(fill='both')
-        sk.pack(fill="both", expand=True)
-
-
-
-
 
             
+
 
 
 
@@ -1361,4 +1835,3 @@ if __name__ == "__main__":
 
 
 # TODO Work on reading files
-# TODO Work on making the file reading work. i need to make the `ai_function_execution` function  take in the correct image or audio function as well as any additional text.
