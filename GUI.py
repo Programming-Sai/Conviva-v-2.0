@@ -677,9 +677,9 @@ class GUI(TkinterDnD.Tk):  # Multiple inheritance
             window_height = self.winfo_height()
             # Check window size and reposition the label accordingly
             if window_width == width or window_height == height:
-                self.file_tag.place(relx=0.28, rely=0.8)
+                self.file_tag.place(relx=0.15, rely=0.8)
             else:
-                self.file_tag.place(relx=0.13, rely=0.8)
+                self.file_tag.place(relx=0.1, rely=0.8)
 
 
 
