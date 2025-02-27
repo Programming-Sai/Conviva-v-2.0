@@ -4,5 +4,4 @@ conviva2/
 
 __pycache__/
 tempCodeRunnerFile.py
-Conversations/*
-Conversations/.current_conversation_file_name.txt
+# Conversations/*
