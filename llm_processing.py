@@ -99,7 +99,7 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 
 
 
-# a = AI_Utilties()
+a = AI_Utilties(lambda x:x)
 x = AsciiColors()
 
  
@@ -114,7 +114,7 @@ def ai_sound_analysis_external(extra_prompt, path, extra_utilities_class):
         try:
             transcription = client.audio.transcriptions.create(
                 file=(filename, file.read()), # Required audio file
-                # model=extra_utilities_class.models[5], # Required model to use for transcription
+                prompt=extra_prompt,
                 model=extra_utilities_class.models[2], # Required model to use for transcription
                 response_format="json",  # Optional
                 language="en",  # Optional
@@ -123,19 +123,20 @@ def ai_sound_analysis_external(extra_prompt, path, extra_utilities_class):
         
 
             completion = client.chat.completions.create(
-            model=extra_utilities_class.models[3],
+            model=extra_utilities_class.models[0],
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                # {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{extra_prompt}"}
             ],
                 temperature=1,
                 max_tokens=1024,
                 top_p=1,
             )
-            response = completion.choices[0].message.content
-            return response
-        except:
-            return ""
+            sound_response = completion.choices[0].message.content
+            return sound_response
+        except Exception as e:
+            print(f"Error Handling Audio: {str(e)}")
+            return f"Error Handling Audio: {str(e)}"
        
 
 def ai_chat_external(utilities_class):
@@ -169,10 +170,6 @@ def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
         client = Groq(api_key=os.getenv('GROQ_API_KEY'))
         chat_completion = client.chat.completions.create(
         messages=[
-                # {
-                #     "role": "system",
-                #     "content": "Analyze the provided image and describe it in extreme detail. Identify all visible objects, colors, textures, lighting conditions, settings, people, animals, and text (if any). Include spatial relationships, positions, and orientations of objects. Infer potential actions, emotions, or interactions present in the image. Break down the image into sections if necessary, and describe each section in-depth. If applicable, analyze symbols, artistic elements, or patterns. Provide raw data that could be useful for further AI processing, ensuring no relevant detail is omitted. Finally, summarize the overall meaning, possible intent, or purpose of the image."
-                # },
                 {
                     "role": "user",
                     "content": [
@@ -189,11 +186,10 @@ def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
             model=extra_utilities_class.models[1],
         )
         response = chat_completion.choices[0].message.content
-        print("Response:", response)
         return response
     except Exception as e:
-        print(f"Error In Analysing Image: {e.message}")
-        return f"Error In Analysing Image: {e.message}"
+        print(f"Error In Analysing Image: {str(e)}")
+        return f"Error In Analysing Image: {str(e)}"
 
 def ai_chat(utilities_class):
     return ai_chat_external(utilities_class)
@@ -299,6 +295,7 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
             print("Calling External Function:", extra_func.__name__)
             try:
                 function_response = extra_func(**extra_func_kwargs)
+                print("Sound Response From Execution Function:", function_response)
                 utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f"), function_name=extra_func.__name__)
             except Exception as e:
                 print(f"Error calling {extra_func}: {e}")
@@ -308,8 +305,10 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
                 model=utilities_class.models[1],
                 messages=utilities_class.conversation.conversation_history
             )
-            utilities_class.conversation.append_to_history("assistant", second_response.choices[0].message.content)
-            return second_response.choices[0].message.content
+            response = second_response.choices[0].message.content
+            utilities_class.conversation.append_to_history("assistant", response)
+            print("Function Execution Response:", response)
+            return response
         
         response_message = response.choices[0].message
         tool_calls = response_message.tool_calls or {}
@@ -341,10 +340,10 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
             return ai_chat(utilities_class)
     except APIConnectionError as e:
         print(f"API connection error: {e}")
-        return str(e.message)
+        return str(e)
     except Exception as e:
         print(f"Error in function execution: {e}")
-        return str(e.message)
+        return str(e)
 
 
 
@@ -418,3 +417,4 @@ tools = all_tools + [
 
 
 
+# print(ai_sound_analysis("What is this?",'/Users/mac/Desktop/Conviva-v-2.0/audio.mp3', a))
