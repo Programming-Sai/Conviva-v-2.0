@@ -99,7 +99,7 @@ Set up subparsers for the cli, so that there would be a more sturctured system o
 
 
 
-a = AI_Utilties(lambda x:x)
+# a = AI_Utilties(lambda x:x)
 x = AsciiColors()
 
  

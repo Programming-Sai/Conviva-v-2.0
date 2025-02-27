@@ -32,21 +32,21 @@ class GUI(TkinterDnD.Tk):
         self.size = (1200, 700)
         self.settings=self.load_settings()
         self.purple_palette = [
-            "#E6E6FA",  # Lavender
-            "#E0B0FF",  # Mauve
-            "#C8A2C8",  # Lilac
-            "#9966CC",  # Amethyst
-            "#7851A9",  # Royal Purple
-            "#9C51B6",  # Purple Plum
-            "#673AB7",  # Deep Purple
-            "#614051",  # Eggplant
-            "#2E003E",  # Midnight Purple
-            "#9932CC",  # Dark Orchid
-            "#4B0082",  # Indigo
-            "#2C003E",  # Dark Grape
-            "#1D0033",  # Dark Violet
-            "#12002C",  # Deep Eggplant
-            "#0D001A"   # Almost Black Purple
+            "#E6E6FA",  # Lavender              0
+            "#E0B0FF",  # Mauve                 1
+            "#C8A2C8",  # Lilac                 2
+            "#9966CC",  # Amethyst              3
+            "#7851A9",  # Royal Purple          4
+            "#9C51B6",  # Purple Plum           5
+            "#673AB7",  # Deep Purple           6
+            "#614051",  # Eggplant              7
+            "#2E003E",  # Midnight Purple       8
+            "#9932CC",  # Dark Orchid           9
+            "#4B0082",  # Indigo                10
+            "#2C003E",  # Dark Grape            11
+            "#1D0033",  # Dark Violet           12
+            "#12002C",  # Deep Eggplant         13
+            "#0D001A"   # Almost Black Purple   14
         ]
 
         self.file_type_colors = {
@@ -120,7 +120,7 @@ class GUI(TkinterDnD.Tk):
         """
         self.pages[self.current_page_index]()  # Running the function associated with the current page
         self.page_frame.pack(fill='both', expand=True)  # Expanding the frame to fit the window
-        self.nav_buttons()  # Displaying navigation buttons
+        # self._nav_buttons()  # Displaying navigation buttons
 
     def topbar(self, frame):
         """
@@ -363,7 +363,7 @@ class GUI(TkinterDnD.Tk):
         self.page_frame.pack(fill='both', expand=True)  # Ensure the new page is displayed
         self.side_panel_visible = not self.side_panel_visible  # Toggle sidebar state
         self.toggle_side_panel()  # Apply the sidebar change
-        self.nav_buttons()  # Update navigation buttons
+        # self._nav_buttons()  # Update navigation buttons
 
     def set_sidebar_state(self, state):
         """
@@ -749,10 +749,10 @@ class GUI(TkinterDnD.Tk):
 # Speech (Orb) Chat Page
 
     def speech_chat(self):
-        """
-        Initializes and displays the speech chat interface.
-        """
-        try:
+        # """
+        # Initializes and displays the speech chat interface.
+        # """
+        # try:
             # Creating the main frame for speech chat
             self.speech_chat_frame = tk.Frame(self.page_frame)
 
@@ -770,9 +770,9 @@ class GUI(TkinterDnD.Tk):
 
             # Packing the speech chat frame to make it visible
             self.speech_chat_frame.pack(fill='both', expand=True)
-        except:
+        # except:
             # Handling cases where speech chat does not exist
-            print("Not In Existence (Speech Chat)")
+            # print("Not In Existence (Speech Chat)")
 
     def main_speech_content_content(self):
         """
@@ -800,6 +800,10 @@ class GUI(TkinterDnD.Tk):
 
         # Initializing the chat input bar without displaying it yet
         self.chatbar(self.speech_body)
+
+        FloatingButtonList(self, orientation='vertical', functions=self.pages)
+
+
 
         # Placing the speech chat body in the frame
         self.speech_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
@@ -911,6 +915,8 @@ class GUI(TkinterDnD.Tk):
             hover_color=self.purple_palette[9], command=self.scroll_button_method
         )
         self.scroll_button.pack()
+
+        FloatingButtonList(self, orientation='vertical', functions=self.pages)
 
         # Placing the text body in the frame
         self.text_body.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
@@ -1378,7 +1384,7 @@ class GUI(TkinterDnD.Tk):
         tk.Frame(self.scroll_frame, height=50).pack(side='bottom')
 
 
-    def nav_buttons(self):
+    def _nav_buttons(self):
         """
         Creates and places navigation buttons for page selection.
 
@@ -1583,7 +1589,117 @@ class GUI(TkinterDnD.Tk):
 
 
 
+
+class FloatingButtonList(ctk.CTkLabel):
+    """
+    A class representing a floating button list.
+
+    Attributes:
+        parent (tk.Tk): The parent window.
+        orientation (str): The orientation of the button list ('vertical' or 'horizontal').
+        functions (list): The list of functions to be called when buttons are clicked.
+        i (int): The index of the current button.
+        i_id (int): The ID of the current button.
+        photos (list): The list of button images.
+        labels (list): The list of button labels.
+        label_toggle (bool): The toggle state of the labels.
+        image_names (list): The list of image names for the buttons.
+    """
+
+    def __init__(self, parent: tk.Tk, orientation: str = 'vertical', functions: list = []) -> None:
+        """
+        Initializes the FloatingButtonList instance.
+
+        Args:
+            parent (tk.Tk): The parent window.
+            orientation (str, optional): The orientation of the button list ('vertical' or 'horizontal'). Defaults to 'vertical'.
+            functions (list, optional): The list of functions to be called when buttons are clicked. Defaults to [].
+        """
+        super().__init__(parent, text='\u2630'.strip(), font=('Arial Black', 45), fg_color=parent.purple_palette[7], corner_radius=5)
+        self.i = 0
+        self.i_id = 0
+        self.photos = []
+        self.labels = []
+        self.parent = parent
+        self.label_toggle = False
+        self.functions = functions
+        self.orientation = orientation
+        self.bind("<Button-1>", self.open_other_buttons)
+        self.image_names = ["ai", "chat"]
+        self.place_button()
+
+    def place_buttons(self) -> None:
+        """
+        Places the floating buttons on the screen.
+        """
+        if self.i < len(self.image_names): 
+            self.label_button = ctk.CTkLabel(self.parent, image=self.get_button_image(self.image_names[self.i]), corner_radius=5, text='', fg_color=self.parent.purple_palette[7])
+            self.label_button.bind("<Button-1>", lambda event, id=self.i: self.open_next_page(event, id))
+            if self.orientation == 'horizontal':
+                self.label_button.place(relx=(1 - (310 - self.i * 100) / self.parent.winfo_width()), y=70, anchor='ne')
+            else:
+                self.label_button.place(relx=0.95, y=(150 + self.i * 100), anchor='ne')
+            self.labels.append(self.label_button)
+            self.i += 1
+            self.i_id = self.parent.after(25, self.place_buttons)                
+        else:
+            self.after_cancel(self.i_id)
+
+    def clear_buttons(self) -> None:
+        """
+        Clears the floating buttons from the screen.
+        """
+        for i in self.labels:
+            i.place_forget()
+        self.i = 0
             
+    def open_other_buttons(self, e: tk.Event) -> None:
+        """
+        Opens or closes the floating buttons.
+
+        Args:
+            e (tk.Event): The event triggering the method.
+        """
+        if not self.label_toggle:
+            self.place_buttons()
+            self.label_toggle = not self.label_toggle
+        else:
+            self.clear_buttons()
+            self.label_toggle = not self.label_toggle
+
+    def open_next_page(self, e: tk.Event, id: int) -> None:
+        """
+        Opens the next page based on the button clicked.
+
+        Args:
+            e (tk.Event): The event triggering the method.
+            id (int): The ID of the button clicked.
+        """
+        self.place_forget()
+        self.clear_buttons()
+        self.parent.change_page(id)
+
+    def get_button_image(self, image_name: str) -> ImageTk.PhotoImage:
+        """
+        Retrieves the image for the button.
+
+        Args:
+            image_name (str): The name of the image file.
+
+        Returns:
+            ImageTk.PhotoImage: The image for the button.
+        """
+        image_path = os.path.join(os.getcwd(), 'Images', f'{image_name}.png')
+        image = Image.open(image_path).resize((40, 40))
+        self.photo = ImageTk.PhotoImage(image)
+        self.photos.append(self.photo)
+        return self.photo
+
+    def place_button(self):
+        self.place(relx=0.95, y=50, anchor='ne')
+    
+
+
 
 
 
