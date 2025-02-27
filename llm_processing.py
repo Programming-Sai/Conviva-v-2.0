@@ -120,20 +120,7 @@ def ai_sound_analysis_external(extra_prompt, path, extra_utilities_class):
                 language="en",  # Optional
                 temperature=0.0  # Optional
             )
-        
-
-            completion = client.chat.completions.create(
-            model=extra_utilities_class.models[0],
-            messages=[
-                # {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Lyrics: {transcription.text}\n\n{extra_prompt}"}
-            ],
-                temperature=1,
-                max_tokens=1024,
-                top_p=1,
-            )
-            sound_response = completion.choices[0].message.content
-            return sound_response
+            return transcription.text
         except Exception as e:
             print(f"Error Handling Audio: {str(e)}")
             return f"Error Handling Audio: {str(e)}"
@@ -188,7 +175,7 @@ def ai_image_analysis_external(extra_prompt, path, extra_utilities_class):
         response = chat_completion.choices[0].message.content
         return response
     except Exception as e:
-        print(f"Error In Analysing Image: {str(e)}")
+        # print(f"Error In Analysing Image: {str(e)}")
         return f"Error In Analysing Image: {str(e)}"
 
 def ai_chat(utilities_class):
@@ -292,10 +279,10 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
         )
 
         if extra_func:
-            print("Calling External Function:", extra_func.__name__)
+            # print("Calling External Function:", extra_func.__name__)
             try:
                 function_response = extra_func(**extra_func_kwargs)
-                print("Sound Response From Execution Function:", function_response)
+                # print("Sound Response From Execution Function:", function_response)
                 utilities_class.conversation.append_to_history("tool", function_response, tool_call_id=datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f"), function_name=extra_func.__name__)
             except Exception as e:
                 print(f"Error calling {extra_func}: {e}")
@@ -307,7 +294,7 @@ def ai_function_execution(prompt, tools, available_functions, utilities_class, e
             )
             response = second_response.choices[0].message.content
             utilities_class.conversation.append_to_history("assistant", response)
-            print("Function Execution Response:", response)
+            # print("Function Execution Response:", response)
             return response
         
         response_message = response.choices[0].message
