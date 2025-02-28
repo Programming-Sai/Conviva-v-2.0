@@ -10,7 +10,6 @@ import termios
 import select
 import json
 from utility_functions import *
-from Youtube_Downloader import YoutubeDownloader
 from tabulate import tabulate
 
 
@@ -59,64 +58,33 @@ class CLI(ag.ArgumentParser):
 
     def add_arguments(self):
 
-        # Standalone Commands
-        self.add_argument('-t', '--terminal', action='store_true', help='Opens the terminal')
-        self.add_argument('-s', '--screenshot', action='store_true', help='Takes a Screenshot.')
-        self.add_argument('-f', '--file-path', type=str, default='screenshot', help='Takes a Screenshot and stores it in a given file..')        
-        self.add_argument('-l', '--lock-screen', action='store_true', help='locks the screen')
-        self.add_argument('-m', '--manual', action='store_true', help='Show help information for all commands.')
         
-        # Math Parser
-        math_parser = self.subparsers.add_parser('calc', help="Perform basic mathematical operations", description="Performs calculations based on mathematical expressions.")
-        math_parser.add_argument('expression', type=str, help="This is the matimatical expression to be operated on.")
-        math_parser.add_argument('-p', '--precision', type=int, help='Specifies the number of decimal places that a value should fall under. it defaults to 0', default=0)
-
-
-        # Date and Time Parser
-        datetime_parser = self.subparsers.add_parser('datetime', help='Returns the current date or time', description="Returns the current date and/or time.")
-        datetime_parser.add_argument('-t', '--time', action='store_true', help='This determines if the time is needed.')
-        datetime_parser.add_argument('-d', '--date', action='store_true', help='This determines if the date is needed.')
-
-        # Website 
-        website_parser = self.subparsers.add_parser('url', help='Opens a website based on a given link', description="Opens the provided website link.")
-        website_parser.add_argument('link', type=str, help='This is the link to be opened')
         
-        # Adding YouTube parser
-        youtube_parser = self.subparsers.add_parser('youtube', help='Performs some basic YouTube operations', description="Performs actions related to YouTube such as downloading videos.")
+        self.add_argument('-s', '--speech', action='store_true', help='Start a voice-based AI conversation using speech recognition.')
+        self.add_argument('-t', '--text', action='store_true', help='Start a text-based AI conversation where you type messages.')
+        self.add_argument('-n', '--new-conversation', action='store_true', help='Create a new conversation session, separate from previous ones.')
+        self.add_argument('-a', '--switch-conversation', type=str, help='Switch to a previously saved conversation by providing its name.')
+        self.add_argument('-l', '--list-conversation', action='store_true', help='Display all stored conversations with their names and timestamps.')
+
+        # Managing Conversations
+        self.add_argument('-c', '--clear-conversations', action='store_true', help='Delete all stored conversations and reset history.')
+        self.add_argument('-e', '--edit-conversation', type=str, help='Edit a specific conversation by providing its name.')
+        self.add_argument('-d', '--delete-conversation', type=str, help='Delete a specific conversation from history by name.')
+        self.add_argument('-i', '--search-conversation-interactive', type=str, help='Search for a conversation by keyword in an interactive mode.')
+        self.add_argument('-f', '--search-conversation-tabular', type=str, help='Search for a conversation by keyword and display results in tabular format.')
+
+        # Voice Settings
+        self.add_argument('-v', '--select-voice', type=str, help='Choose a specific voice for AI responses by providing a voice ID or name.')
+        self.add_argument('-p', '--preview-voice', action='store_true', help='Listen to a short sample of the currently selected AI voice.')
 
 
-        # Subparsers for download options (audio/video download)
-        download_subparser = youtube_parser.add_subparsers(dest='download', help='Download options for YouTube')
 
-        # This argument is used for opening a video without downloading
-        show_video = download_subparser.add_parser('show', help='Opens the video on Youtube', description="Opens the video on Youtube")
-        show_video.add_argument('video_name', type=str, help='Name Of the video to open.')
+        # Clear current conversation on each switch
+        # Uploading images and audio files
+        # Find conversations by date, name, content(use sparingly)
+        # Add a customized system prompt.
 
-        # Volume Manupulation
-        volume_subparser = self.subparsers.add_parser('volume', help='Manages the volume of the system.', description="Manages system volume, allowing you to get, set, or mute the volume.")
-        volume_subparser.add_argument('-g', '--get-volume', action='store_true', help="Get's and display's the volume")
-        volume_subparser.add_argument('-s', '--set-volume', type=int, metavar='VOLUME', help='Sets the volume. Usage: -s <volume>')
-        volume_subparser.add_argument('-x', '--mute-volume', action='store_true', help='Mutes the volume')
-
-        # Ai Chat and Other stuff
-        ai_subparser = self.subparsers.add_parser('ai', help='Provides various AI-powered features like chat and speech synthesis.')
-        ai_subparser_subparsers = ai_subparser.add_subparsers(dest='subcommand')  # Create subparsers for the 'ai' command
         
-        # Chat subcommand
-        chat_parser = ai_subparser_subparsers.add_parser('chat', help="Start an AI-powered chat conversation. Use '--speech' or '--text' for interaction type.")
-        chat_parser.add_argument('-s', '--speech', action='store_true', help='Initiate the conversation with speech recognition and AI responses.')
-        chat_parser.add_argument('-t', '--text', action='store_true', help='Start a text-based conversation with AI for typing messages.')
-        chat_parser.add_argument('-cc', '--create-conversation', action='store_true', help='Start a new conversation from scratch.')
-        chat_parser.add_argument('-sc', '--switch-conversation', type=str, help='Switch to a previous conversation.')
-        chat_parser.add_argument('-lc', '--list-conversation', action='store_true', help='Show all conversations')
-
-        # AI image analysis
-        image_subparser = ai_subparser_subparsers.add_parser('ai-image', help="Use AI to analyze an image and return insights or features.")
-        image_subparser.add_argument('image', nargs='?', type=str, help='Path to the image for analysis.')
-
-        # AI audio analysis
-        audio_subparser = ai_subparser_subparsers.add_parser('ai-audio', help="Use AI to analyze an audio clip and return insights or features.")
-        audio_subparser.add_argument('audio', type=str, help='Path to the audio file to be analyzed by AI.')
 
     def process_args(self):
         try:
@@ -205,6 +173,9 @@ class CLI(ag.ArgumentParser):
             return
         except Exception as e:
             print(f'\n\nSomething went Wrong. This Was The issue: {e}')
+
+
+
 
     def validate_speed(self, value):
         value = float(value)
