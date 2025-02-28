@@ -308,13 +308,13 @@ class GUI(TkinterDnD.Tk):
         config_menu.add_separator()
 
         # Voice Selection
-        voice_submenu = tk.Menu(config_menu, tearoff=False)
+        self.voice_submenu = tk.Menu(config_menu, tearoff=False)
         voices = self.pulser.voices()
         self.current_voice = tk.StringVar(value=self.settings.get("default-voice", ""))
 
         for voice in voices:
             voice_name = voice['name']
-            single_voice_menu = tk.Menu(voice_submenu, tearoff=False)
+            single_voice_menu = tk.Menu(self.voice_submenu, tearoff=False)
 
             # Adding a preview option for each voice
             single_voice_menu.add_command(
@@ -330,9 +330,10 @@ class GUI(TkinterDnD.Tk):
                 command=lambda v=voice_name: self.set_default_voice(v)
             )
 
-            voice_submenu.add_cascade(label=voice_name, menu=single_voice_menu)
+            self.voice_submenu.add_cascade(label=voice_name, menu=single_voice_menu)
+        self.update_menu_labels(self.settings.get("default-voice", ""))
 
-        config_menu.add_cascade(label="Select Default Voice", menu=voice_submenu)
+        config_menu.add_cascade(label="Select Default Voice", menu=self.voice_submenu)
 
         config_menu.add_separator()
 
@@ -362,9 +363,6 @@ class GUI(TkinterDnD.Tk):
         # Applying the menu bar to the app
         self.config(menu=menu_bar)
 
-    def upload_file(self, e=None):
-        self.after(100, self.open_file_dialog)  # Delay to prevent UI freezes
-
     def open_file_dialog(self):
         file_path = filedialog.askopenfilename(
             defaultextension="*.*",
@@ -372,6 +370,38 @@ class GUI(TkinterDnD.Tk):
         )
         if file_path:
             self.on_file_selected(file_path)
+
+    def change_page(self, idx):
+        """
+        Switches to a new page by clearing the current page and loading the selected one.
+        Also toggles the sidebar state.
+        """
+        self.clear_page(self.page_frame)  # Clear the existing content
+        self.set_current_page_index(idx)  # Update the page index
+        self.pages[self.current_page_index]()  # Load the new page
+        self.page_frame.pack(fill='both', expand=True)  # Ensure the new page is displayed
+        self.side_panel_visible = not self.side_panel_visible  # Toggle sidebar state
+        self.toggle_side_panel()  # Apply the sidebar change
+        # self._nav_buttons()  # Update navigation buttons
+
+    def upload_file(self, e=None):
+        self.after(100, self.open_file_dialog)  # Delay to prevent UI freezes
+
+    def set_sidebar_state(self, state):
+        """
+        Updates and saves the sidebar visibility state.
+        """
+        self.settings = self.load_settings()  # Load current settings
+        self.side_panel_visible = state  # Update sidebar visibility
+        self.toggle_side_panel()  # Apply visibility change
+        self.settings["sidebar-open"] = state  # Store in settings
+        self.set_settings(self.settings)  # Save the updated settings
+
+    def preview_voice(self, voice, text):
+        """
+        Plays a preview of the selected voice using the given text.
+        """
+        self.pulser.speech(text, voice)
 
     def on_file_selected(self, file_path):
         self.focus_force()
@@ -411,35 +441,6 @@ class GUI(TkinterDnD.Tk):
         except TclError as error:
             print(f"Error handling drop event: {error}")
 
-    def change_page(self, idx):
-        """
-        Switches to a new page by clearing the current page and loading the selected one.
-        Also toggles the sidebar state.
-        """
-        self.clear_page(self.page_frame)  # Clear the existing content
-        self.set_current_page_index(idx)  # Update the page index
-        self.pages[self.current_page_index]()  # Load the new page
-        self.page_frame.pack(fill='both', expand=True)  # Ensure the new page is displayed
-        self.side_panel_visible = not self.side_panel_visible  # Toggle sidebar state
-        self.toggle_side_panel()  # Apply the sidebar change
-        # self._nav_buttons()  # Update navigation buttons
-
-    def set_sidebar_state(self, state):
-        """
-        Updates and saves the sidebar visibility state.
-        """
-        self.settings = self.load_settings()  # Load current settings
-        self.side_panel_visible = state  # Update sidebar visibility
-        self.toggle_side_panel()  # Apply visibility change
-        self.settings["sidebar-open"] = state  # Store in settings
-        self.set_settings(self.settings)  # Save the updated settings
-
-    def preview_voice(self, voice, text):
-        """
-        Plays a preview of the selected voice using the given text.
-        """
-        self.pulser.speech(text, voice)
-
     def set_default_voice(self, voice_name):
         """
         Updates and saves the default voice setting.
@@ -448,6 +449,7 @@ class GUI(TkinterDnD.Tk):
         self.speech_voice = voice_name  # Update the voice setting
         self.settings["default-voice"] = voice_name  # Store in settings
         self.set_settings(self.settings)  # Save the updated settings
+        self.update_menu_labels(voice_name)
 
     def set_current_page_index(self, index):
         """
@@ -463,6 +465,15 @@ class GUI(TkinterDnD.Tk):
         self.current_page_index = screen_name  # Update the current page index
         self.settings["default-screen"] = screen_name  # Store in settings
         self.set_settings(self.settings)  # Save the updated settings
+
+    def update_menu_labels(self, selected_voice):
+        """Update submenu labels to indicate the selected voice."""
+        for i in range(self.voice_submenu.index("end") + 1):  # Iterate through menu indices
+            label = self.voice_submenu.entrycget(i, "label")  # Get current label
+            if label:
+                voice_name = label.replace("✅ ", "")  # Remove existing checkmark if present
+                new_label = f"✅ {voice_name}" if voice_name == selected_voice else voice_name
+                self.voice_submenu.entryconfig(i, label=new_label)  # Update label
 
 
 
@@ -1649,7 +1660,7 @@ class GUI(TkinterDnD.Tk):
 
 
 
-class FloatingButtonList(ctk.CTkLabel):
+class FloatingButtonList(ctk.CTkButton):
     """
     A class representing a floating button list.
 
@@ -1674,7 +1685,7 @@ class FloatingButtonList(ctk.CTkLabel):
             orientation (str, optional): The orientation of the button list ('vertical' or 'horizontal'). Defaults to 'vertical'.
             functions (list, optional): The list of functions to be called when buttons are clicked. Defaults to [].
         """
-        super().__init__(parent, text='\u2630'.strip(), font=('Arial Black', 45), fg_color=parent.purple_palette[7], corner_radius=20)
+        super().__init__(parent, text='\u2630'.strip(), font=('Arial Black', 45), fg_color=parent.purple_palette[7], hover_color=parent.purple_palette[7], corner_radius=10, width=50, height=50)
         self.i = 0
         self.i_id = 0
         self.photos = []
@@ -1683,7 +1694,9 @@ class FloatingButtonList(ctk.CTkLabel):
         self.label_toggle = False
         self.functions = functions
         self.orientation = orientation
-        self.bind("<Button-1>", self.open_other_buttons)
+        # self.bind("<Button-1>", self.open_other_buttons)
+        self.configure(command=self.open_other_buttons)
+        
         self.image_names = ["ai", "chat"]
         self.place_button()
 
@@ -1692,8 +1705,18 @@ class FloatingButtonList(ctk.CTkLabel):
         Places the floating buttons on the screen.
         """
         if self.i < len(self.image_names): 
-            self.label_button = ctk.CTkLabel(self.parent, image=self.get_button_image(self.image_names[self.i]), corner_radius=20, text='', fg_color=self.parent.purple_palette[7])
-            self.label_button.bind("<Button-1>", lambda event, id=self.i: self.open_next_page(event, id))
+            self.label_button = ctk.CTkButton(
+                self.parent, 
+                image=self.get_button_image(self.image_names[self.i]), 
+                corner_radius=10, 
+                text='', 
+                fg_color=self.parent.purple_palette[7],
+                hover_color=self.parent.purple_palette[7],
+                command=lambda id=self.i: self.open_next_page(id),
+                width=60,
+                height=60,
+            )
+            # self.label_button.bind("<Button-1>", lambda event, id=self.i: self.open_next_page(event, id))
             if self.orientation == 'horizontal':
                 self.label_button.place(relx=(1 - (310 - self.i * 100) / self.parent.winfo_width()), y=70, anchor='ne')
             else:
@@ -1712,7 +1735,7 @@ class FloatingButtonList(ctk.CTkLabel):
             i.place_forget()
         self.i = 0
             
-    def open_other_buttons(self, e: tk.Event) -> None:
+    def open_other_buttons(self, e=None) -> None:
         """
         Opens or closes the floating buttons.
 
@@ -1726,7 +1749,7 @@ class FloatingButtonList(ctk.CTkLabel):
             self.clear_buttons()
             self.label_toggle = not self.label_toggle
 
-    def open_next_page(self, e: tk.Event, id: int) -> None:
+    def open_next_page(self, id: int, e=None ) -> None:
         """
         Opens the next page based on the button clicked.
 
@@ -1738,7 +1761,7 @@ class FloatingButtonList(ctk.CTkLabel):
         self.clear_buttons()
         self.parent.change_page(id)
 
-    def get_button_image(self, image_name: str) -> ImageTk.PhotoImage:
+    def get_button_image(self, image_name, size=(40, 40)) -> ImageTk.PhotoImage:
         """
         Retrieves the image for the button.
 
@@ -1749,8 +1772,13 @@ class FloatingButtonList(ctk.CTkLabel):
             ImageTk.PhotoImage: The image for the button.
         """
         image_path = os.path.join(os.getcwd(), 'Images', f'{image_name}.png')
-        image = Image.open(image_path).resize((40, 40))
-        self.photo = ImageTk.PhotoImage(image)
+        img = Image.open(image_path)
+
+        self.photo = ctk.CTkImage(
+            dark_image=img,
+            light_image=img,
+            size=size  # Explicitly set the display size
+        )
         self.photos.append(self.photo)
         return self.photo
 
