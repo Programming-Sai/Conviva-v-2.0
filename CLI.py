@@ -8,7 +8,6 @@ import sys
 import tty
 import termios
 import select
-import json
 from utility_functions import *
 from tabulate import tabulate
 
@@ -41,6 +40,7 @@ class CLI(ag.ArgumentParser):
     def __init__(self):
         super().__init__(description="This command-line interface (CLI) tool offers a range of functionalities, including mathematical calculations, date and time retrieval, web browsing, audio and video downloading from YouTube, and AI-powered features such as chat and media analysis. Users can perform actions like taking screenshots, locking the screen, managing system volume, and more through straightforward commands and options. The program supports both speech and text interactions for an engaging user experience.")  
 
+        self.end_convo = False
 
         self.utilities = AI_Utilties(self.cli_title_function, Conversation(self.cli_title_function))
         self.ascii_colors = AsciiColors()
@@ -57,9 +57,6 @@ class CLI(ag.ArgumentParser):
         return input('Please what would you like to name this conversation?  ').replace(' ', '-').replace('_', '-')
 
     def add_arguments(self):
-
-        
-        
         self.add_argument('-s', '--speech', action='store_true', help='Start a voice-based AI conversation using speech recognition.')
         self.add_argument('-t', '--text', action='store_true', help='Start a text-based AI conversation where you type messages.')
         self.add_argument('-n', '--new-conversation', action='store_true', help='Create a new conversation session, separate from previous ones.')
@@ -67,15 +64,19 @@ class CLI(ag.ArgumentParser):
         self.add_argument('-l', '--list-conversation', action='store_true', help='Display all stored conversations with their names and timestamps.')
 
         # Managing Conversations
-        self.add_argument('-c', '--clear-conversations', action='store_true', help='Delete all stored conversations and reset history.')
+        self.add_argument('-c', '--clear-conversation', action='store_true', help='Delete all stored conversations and reset history.')
         self.add_argument('-e', '--edit-conversation', type=str, help='Edit a specific conversation by providing its name.')
         self.add_argument('-d', '--delete-conversation', type=str, help='Delete a specific conversation from history by name.')
+        self.add_argument('-F', '--search-conversation', type=str, help='Search for a conversation by keyword in an interactive mode.')
         self.add_argument('-i', '--search-conversation-interactive', type=str, help='Search for a conversation by keyword in an interactive mode.')
         self.add_argument('-f', '--search-conversation-tabular', type=str, help='Search for a conversation by keyword and display results in tabular format.')
 
         # Voice Settings
         self.add_argument('-v', '--select-voice', type=str, help='Choose a specific voice for AI responses by providing a voice ID or name.')
         self.add_argument('-p', '--preview-voice', action='store_true', help='Listen to a short sample of the currently selected AI voice.')
+        
+        # Calling GUI
+        self.add_argument('--gui', action='store_true', help='Opening GUI')
 
 
 
@@ -90,85 +91,50 @@ class CLI(ag.ArgumentParser):
         try:
             print()
             args = self.parse_args()
-            if   args.terminal:
-                open_cmd()
-                print('Terminal Opened')
-            elif args.screenshot:
-                if args.file_path:
-                    print(take_screenshot(file_path=args.file_path))
-            elif args.lock_screen:
-                print(lock_screen())
-            elif args.manual:
-                self.print_all_help()
-            elif args.command == 'calc':
-                if args.expression:
-                    result = calculate(args.expression)
-                    result_dict = json.loads(result)
-                    if "result" in result_dict:
-                        print(round(result_dict["result"], args.precision))
-                else:
-                    print("Error:", result_dict.get("error"))
-            elif args.command == 'datetime':
-                if args.date:
-                    print(tell_time(date=True, time=False))
-                elif args.time:
-                    print(tell_time(date=False, time=True))
-                else:
-                    print(tell_time(date=True, time=True))
-            elif args.command == 'url':
-                if args.link:
-                    open_website(args.link)
-                    print(f'{args.link} Opened')
-                else:
-                    print("Error: No link provided to open a website.")    
-            elif args.command == 'youtube':
-                if args.download == 'show':
-                    if args.video_name:
-                        play_video(args.video_name)  
-                        print(f'{args.video_name} Opened on YouTube')
-                    else:
-                        print("Error: No video provided to show.")
-                # Error if no command is provided
-                else:
-                    print("Error: No valid command provided. Provide a video, link or download option.")
-            elif args.command == 'volume':
-                if args.get_volume:
-                    print(get_volume())
-                elif args.set_volume:
-                        set_volume(args.set_volume)
-                        print(f'Volume Set To {args.set_volume}')
-                elif args.mute_volume:
-                    print(mute_volume())      
-            elif args.command == 'ai':
-                if args.subcommand == 'chat':
-                    if args.speech or args.text:
-                        if args.create_conversation:
-                            self.toggle_conversation()
-                        elif args.switch_conversation:
-                            success  = self.utilities.conversation.switch_conversation(args.switch_conversation)
-                            if success == 'Failed':
-                                print(f'Sorry {self.ascii_colors.color(args.switch_conversation, self.ascii_colors.ITALIC)} does not exist')
-                            else:
-                                print(f'Conversation Switched From {self.ascii_colors.color(self.utilities.conversation.current_file_name, self.ascii_colors.ITALIC)} to {self.ascii_colors.color(args.switch_conversation, self.ascii_colors.ITALIC)} Successfully')
-                        elif args.list_conversation:
-                            self.list_conversations()
-                        else:
-                            self.start_conversation(args.speech, args.text)
-                    else:
-                        print("Please specify an interaction mode with --speech or --text.")
-                elif args.subcommand == 'ai-image':
-                    if args.image:
-                        self.handle_audio_or_image_analysis(ai_image_analysis, args.image)
-                    else:
-                        print('No image provided for ai analysis')
+            if  args.speech:
+                self.start_conversation(True, False)
 
-                elif args.subcommand == 'ai-audio':
-                    if args.audio:
-                        self.handle_audio_or_image_analysis(ai_sound_analysis, args.audio)
-                    else:
-                        print('Error: No audio file provided for AI analysis.')
-            else:
+            elif args.text:
                 self.start_conversation(False, True)
+            
+            elif args.new_conversation:
+                print("Creating a new conversation")
+                self.new_conversation()
+
+            elif args.switch_conversation:
+                print("Switching to another conversation")
+                # Would have to find the conversation to open
+                # Would then have to open the conversation
+
+
+            elif args.list_conversation:
+                print("List out all conversations")
+                self.list_conversations()
+
+            elif args.clear_conversation:
+                print("Clearing All Conversations")
+                
+            elif args.edit_conversation:
+                print("Editting an individual conversation")
+                   
+            elif args.delete_conversation:
+                print("Deleting a single conversation")
+                
+            elif args.search_conversation:
+                print("Searching for a conversation.")
+                   
+            elif args.select_voice:
+                print("Selecting all voices")
+                
+            elif args.preview_voice:
+                print("Preview a voice")
+            
+            elif args.gui:
+                print("Opening GUI")
+                
+            else:
+                # self.start_conversation(False, True)
+                print("Would Default to Convo")
             print()
             return
         except Exception as e:
@@ -176,36 +142,6 @@ class CLI(ag.ArgumentParser):
 
 
 
-
-    def validate_speed(self, value):
-        value = float(value)
-        if value < 0 or value > 2:
-            raise ag.ArgumentTypeError("Speed must be between 0 and 2.")
-        return value
- 
-    def validate_extension(self, extension):
-        video_file_extensions = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv']
-        if extension in video_file_extensions:
-            return extension
-        else:
-            print(f"\nSorry {extension} is either not supprted or invalid. Using Default\n")
-            return None
-
-    def print_all_help(self):
-        print(self.ascii_colors.center_block_text(self.ascii_colors.random_color(title)))
-        print('\n\n', self.format_help())
-        print("\nAvailable commands and options:")
-        for action in self._actions:
-            if action.dest != 'command':
-                print(f"  {action.dest}: {action.help}")
-
-        # Print subcommands and their options
-        for subparser in self.subparsers.choices.values():
-            print(f"\nSubcommand: {subparser.prog}")
-            print(f"  Help: {subparser.description}")
-            for sub_action in subparser._actions:
-                print(f"    {sub_action.dest}: {sub_action.help}")
-        print('\n\n')
 
     def handle_audio_or_image_analysis(self, function, file_parameter):
         print("Please Enter Your Prompt Here (Ctrl+D to end): \n\n")
@@ -235,8 +171,7 @@ class CLI(ag.ArgumentParser):
         elif text:
             user_text = self.utilities.get_text_prompt()
             return user_text, user_text.split(' ')
-        
-        
+                
     def show_model_response(self, user_prompt, speech, text):
         response = ai_function_execution(user_prompt, tools, available_functions, self.utilities)
         if speech:
@@ -251,10 +186,10 @@ class CLI(ag.ArgumentParser):
         print(self.ascii_colors.center_block_text(self.ascii_colors.random_color(title)))
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
-            if user_prompt.lower() in ['x', 'exit']:
+            if user_prompt.lower() in ['x', 'exit'] or self.end_convo:
                 break
             elif user_prompt.lower() == 'c':
-                self.toggle_conversation()
+                self.new_conversation()
                 continue
             elif user_prompt == "":
                 print("--------")
@@ -305,11 +240,57 @@ class CLI(ag.ArgumentParser):
         self.stop_input_thread.set()  # Ensure stop event is set
         input_thread.join()  # Wait for the input thread to finish
 
-    def toggle_conversation(self):
+    def new_conversation(self):
         self.utilities.conversation.move_file = True
         self.utilities.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
         self.utilities.conversation.move_file = False
+        # Opening New Conversation
+
+    def open_conversation(self, id):
+        pass
+
+    def clear_conversation_history(self):
+        pass
+        # ask for confirmation 
+        # then delete
+
+    def edit_conversation(self, id):
+        pass
+        # Get exact conversation
+        # Edit it's title
+        # Save it back
+
+    def delete_conversation(self, id):
+        pass
+        # Get exact conversation
+        # delete it
+
+    def search_filter_conversations(self):
+        pass
+        # Search for a conversation based on title, id (date), content from conversation
+        # Return all results
+
+    def get_voices(self):
+        pass    
+        # Get all voices and return them
+
+    def select_main_voice(self, id):
+        pass
+        # get all voices
+        # select and save chosen voice
+
+    def preview_voice(self, id):
+        pass
+        # Preview given voice
+
+    def open_gui(self):
+        pass    
+        # Check if gui exists
+        # If it does, open it
+        # If it doesn't, ask to download it and thenopen it.
+        # Else End
+        
 
     def spinner(self):
         """Spinner animation displayed while waiting."""
@@ -343,15 +324,19 @@ class CLI(ag.ArgumentParser):
     def get_previous_conversation(self):
         return input('Which conversation would you like to switch to? ')
 
+    def select_conversation(self):
+        pass
+
 if __name__ == '__main__':
-    CLI()
+    cli = CLI()
+    # cli.new_conversation()
+    cli.list_conversations()
 
 
 
 
-# TODO Make it so that one can select -lc, or the others also without specifying the interaction mode.
-# TODO Modify code so that it run on Windows as well.
-# TODO make it so that any task that could take a longer period of time is run on a different thread. now while that is running the ai model, would get an additional string that would force it to call a function to check if the result is in. this would continue while the background operation is still in fluself.ascii_colors. when it is done, it stops adding that extra string.
-# TODO Check on how to atart and stop a thread. OR you can write a function to handle that for you.
-# TODO Find out how to do websrcapping without showing your ip address (i think it is called proxy something.)
-# TODO Handle situation when there is no internet connection.
+
+
+
+
+
