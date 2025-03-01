@@ -1,3 +1,6 @@
+import shutil
+
+import questionary
 from llm_processing import *
 from cli_colors import AsciiColors
 import argparse as ag
@@ -49,6 +52,9 @@ class CLI(ag.ArgumentParser):
 
         self.stop_input_thread = threading.Event()
         self.stop_print_thread = threading.Event()
+
+        self.conversation = []
+        self.conversation_so_far = ''
 
         self.add_arguments()
         self.process_args()
@@ -183,7 +189,11 @@ class CLI(ag.ArgumentParser):
 
 
     def start_conversation(self, speech, text):
+        if not self.get_conversations():
+            self.new_conversation()
+            return 
         print(self.ascii_colors.center_block_text(self.ascii_colors.random_color(title)))
+        print(self.conversation_so_far)
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
             if user_prompt.lower() in ['x', 'exit'] or self.end_convo:
@@ -245,15 +255,104 @@ class CLI(ag.ArgumentParser):
         self.utilities.conversation.create_new_conversation()
         print("New Conversation Should Start here!!!")
         self.utilities.conversation.move_file = False
-        # Opening New Conversation
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("\n"*20)
+        self.end_convo=True
+        with open('Conversations/.current_conversation_file_name.txt', 'r') as f:
+            self.open_conversation(self.extract_timestamp(f.read()).replace("_", ''))
+
 
     def open_conversation(self, id):
-        pass
+        self.conversation_so_far = ""
+        print(id)
+        try:
+            conversations = self.get_conversations()
+            conversation_to_open = [i for i in conversations if id == self.extract_timestamp(i).replace("_", "")][0]
+            # Updating the current conversation file reference
+            with open("Conversations/.current_conversation_file_name.txt", 'w') as f:
+                f.write(conversation_to_open)
+
+            # Loading the conversation history from the file
+            with open(conversation_to_open, 'r') as file:
+                self.utilities.conversation.conversation_history = json.load(file)
+                self.conversation = self.utilities.conversation.conversation_history
+            self.get_conversation_so_far()
+            # print(self.conversation_so_far)
+            self.end_convo=False
+            self.start_conversation(False,  True)
+            print("Starting Convo")
+        except:
+            # Resetting conversation data in case of an error
+            self.utilities.conversation.conversation_history = []
+            self.conversation = self.utilities.conversation.conversation_history
+            self.new_conversation()
+            self.end_convo=False
+            self.start_conversation(False, True)
+
+    def extract_timestamp(self, file_name):
+        """
+        Extracts the timestamp from a conversation file name.
+
+        Args:
+            file_name (str): The file path of the conversation.
+
+        Returns:
+            str: Extracted timestamp in the format 'YYYY_MM_DD'.
+        """
+        copy = file_name.replace("Conversations/", "")
+
+        # Returning empty string if it's a hidden file
+        if copy.startswith("."):
+            return ""
+        
+        # Extracting and returning the timestamp
+        return copy.split('_')[1] + "_" + copy.split('_')[2] + "_" + copy.split('_')[3]
+
+    def get_conversation_so_far(self):
+        for i in self.conversation:
+            if i['role'] == 'user':
+                self.conversation_so_far += f"{self.ascii_colors.color('\n\nYou: ', self.ascii_colors.GREEN)}{i['content']}"
+            elif i['role'] == 'assistant':
+                self.conversation_so_far += f"{self.ascii_colors.color('\n\nConviva: ', self.ascii_colors.GREEN)}{self.ascii_colors.color(i['content'], self.ascii_colors.YELLOW)}"
+
+
+    def get_conversations(self):
+        """
+        Retrieves and sorts conversation files based on extracted timestamps.
+
+        Returns:
+            list: A list of conversation file paths sorted by timestamp in descending order.
+        """
+        # Walking through the "Conversations" directory to get all files
+        walk_gen = os.walk("Conversations")
+        walk_list = list(walk_gen)
+        root = walk_list[0][0]
+
+        # Collecting file paths in the directory
+        files = [os.path.join(root, i) for i in walk_list[0][2]] or []
+
+        # Sorting files based on extracted timestamps (newest first)
+        sorted_files = sorted(files, key=lambda x: self.extract_timestamp(x), reverse=True)
+        return sorted_files
+    
 
     def clear_conversation_history(self):
-        pass
-        # ask for confirmation 
-        # then delete
+        if input("Are you sure that you want to clear your conversation history (Y/n): ").lower() == 'y':
+            try:
+                folder_path = "Conversations"
+                # Deleting all conversation files
+                for filename in os.listdir(folder_path):
+                    file_path = os.path.join(folder_path, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.remove(file_path)  
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path) 
+                self.utilities.conversation.conversation_history = []
+                self.conversation = self.utilities.conversation.conversation_history
+            except Exception as e:
+                print(f"Sonething went Wrong: {e}")
+                
+
 
     def edit_conversation(self, id):
         pass
@@ -290,7 +389,28 @@ class CLI(ag.ArgumentParser):
         # If it does, open it
         # If it doesn't, ask to download it and thenopen it.
         # Else End
-        
+
+    def select_conversation(self):
+        conversations = self.get_conversations()
+        conversation_titles = [i[45:].replace('.json', "") for i in conversations]
+        # Define a custom style
+        custom_style = questionary.Style([
+            ('pointer', 'fg:#00ff00 bold'),  # Change arrow color (green) and make it bold
+            ('highlighted', 'fg:#ffcc00 bold')  # Change highlighted text color (yellow)
+        ])
+
+        print()
+        # Prompt with a custom arrow (pointer)
+        choice = questionary.select(
+            "Pick a framework:",
+            choices=conversation_titles,
+            pointer="❯",  # Change the default arrow
+            style=custom_style  # Apply the custom style
+        ).ask()
+
+        # print(f"You selected: {choice}")
+        return choice
+
 
     def spinner(self):
         """Spinner animation displayed while waiting."""
@@ -317,9 +437,9 @@ class CLI(ag.ArgumentParser):
                 time.sleep(0.5) 
 
     def list_conversations(self):
-        history = self.utilities.conversation.list_conversation_histories()
+        history = [(idx, self.extract_timestamp(i).replace("_", ""), i, i[45:].replace('.json', "")) for idx, i in enumerate(self.get_conversations()) if i != 'Conversations/.current_conversation_file_name.txt']
         headers = ['No.', 'ID', "File", 'Title']
-        print(tabulate(history, headers=headers, stralign="center", numalign="center", tablefmt="pipe"))
+        print(tabulate(history, headers=headers, stralign="left", numalign="center", tablefmt="pipe"))
 
     def get_previous_conversation(self):
         return input('Which conversation would you like to switch to? ')
@@ -330,7 +450,9 @@ class CLI(ag.ArgumentParser):
 if __name__ == '__main__':
     cli = CLI()
     # cli.new_conversation()
-    cli.list_conversations()
+    # cli.open_conversation('20241020152410730023')
+    print(cli.select_conversation())
+    # cli.list_conversations()
 
 
 

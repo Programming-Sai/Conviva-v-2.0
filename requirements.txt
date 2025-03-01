@@ -70,6 +70,7 @@ pandas==2.2.3
 pillow==10.4.0
 platformdirs==4.2.2
 pooch==1.8.2
+prompt_toolkit==3.0.50
 protobuf==4.25.5
 proxy_tools==0.1.0
 PyAudio==0.2.14
@@ -235,6 +236,7 @@ pytz==2024.1
 pywebview==5.2
 pywhatkit==5.4
 PyYAML==6.0.2
+questionary==2.1.0
 regex==2024.9.11
 requests==2.32.3
 retina-face==0.0.17
@@ -265,6 +267,7 @@ tqdm==4.66.5
 typing_extensions==4.12.2
 tzdata==2024.2
 urllib3==2.2.2
+wcwidth==0.2.13
 websockets==13.0.1
 Werkzeug==3.0.4
 wheel==0.44.0
