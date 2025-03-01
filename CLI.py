@@ -1,3 +1,4 @@
+from pathlib import Path
 import shutil
 
 import questionary
@@ -49,19 +50,27 @@ class CLI(ag.ArgumentParser):
         self.ascii_colors = AsciiColors()
 
         self.subparsers = self.add_subparsers(dest='command', required=False, parser_class=ag.ArgumentParser)
-
+        self.extra_func_args = {
+            'extra_prompt': '',
+            'path': '',
+            'extra_utilities_class': self.utilities,
+            'func': None,
+            'type': ''
+        }
         self.stop_input_thread = threading.Event()
         self.stop_print_thread = threading.Event()
 
         self.conversation = []
         self.conversation_so_far = ''
         self.voice = self.get_or_set_voice('get')
-
+        self.get_convresation_content()
         self.add_arguments()
         self.process_args()
+        
    
     def cli_title_function(self):
         return input('Please what would you like to name this conversation?  ').replace(' ', '-').replace('_', '-')
+
 
     def add_arguments(self):
         self.add_argument('-s', '--speech', action='store_true', help='Start a voice-based AI conversation using speech recognition.')
@@ -69,6 +78,7 @@ class CLI(ag.ArgumentParser):
         self.add_argument('-n', '--new-conversation', action='store_true', help='Create a new conversation session, separate from previous ones.')
         self.add_argument('-a', '--switch-conversation', type=str, help='Switch to a previously saved conversation by providing its name.')
         self.add_argument('-l', '--list-conversation', action='store_true', help='Display all stored conversations with their names and timestamps.')
+        self.add_argument('-u', '--upload-media', type=str, help='Display all stored conversations with their names and timestamps.')
 
         # Managing Conversations
         self.add_argument('-c', '--clear-conversation', action='store_true', help='Delete all stored conversations and reset history.')
@@ -76,8 +86,7 @@ class CLI(ag.ArgumentParser):
         self.add_argument('-o', '--open-conversation', action='store_true', help='Open a specific conversation by providing its name.')
         self.add_argument('-d', '--delete-conversation', action='store_true', help='Delete a specific conversation from history by name.')
         self.add_argument('-F', '--search-conversation', action='store_true', help='Search for a conversation by keyword in an interactive mode.')
-        self.add_argument('-i', '--search-conversation-interactive', type=str, help='Search for a conversation by keyword in an interactive mode.')
-        self.add_argument('-f', '--search-conversation-tabular', type=str, help='Search for a conversation by keyword and display results in tabular format.')
+        self.add_argument('-k', '--search-key', type=str, help='Search for a conversation by keyword in an interactive mode.')
 
         # Voice Settings
         self.add_argument('-v', '--select-voice', type=str, help='Choose a specific voice for AI responses by providing a voice ID or name.')
@@ -87,10 +96,9 @@ class CLI(ag.ArgumentParser):
 
 
 
-        # Clear current conversation on each switch
+
         # Uploading images and audio files
-        # Find conversations by date, name, content(use sparingly)
-        # Add a customized system prompt.
+
 
         
 
@@ -132,8 +140,8 @@ class CLI(ag.ArgumentParser):
                 
             elif args.search_conversation:
                 print("Searching for a conversation.")
-                if args.key_word:
-                    self.search_filter_conversations(args.key_word)
+                if args.search_key:
+                    self.search_filter_conversations(args.search_key)
                 else:
                     print("Please provide a valid search term for the search?")
 
@@ -141,6 +149,9 @@ class CLI(ag.ArgumentParser):
             elif args.select_voice:
                 print("Selecting all voices")
                 self.select_main_voice()
+
+            elif args.upload_media:
+                self.get_media_file_for_upload(args.upload_media)
                 
             
             elif args.gui:
@@ -148,8 +159,8 @@ class CLI(ag.ArgumentParser):
 
                 
             else:
-                # self.start_conversation(False, True)
-                print("Would Default to Convo")
+                self.start_conversation(False, True)
+                # print("Would Default to Convo")
             print()
             return
         except Exception as e:
@@ -188,13 +199,66 @@ class CLI(ag.ArgumentParser):
             return user_text, user_text.split(' ')
                 
     def show_model_response(self, user_prompt, speech, text):
-        response = ai_function_execution(user_prompt, tools, available_functions, self.utilities)
+        if self.extra_func_args['func']:
+            self.extra_func_args['extra_prompt'] = user_prompt
+            response = ai_function_execution(user_prompt, tools, available_functions, self.utilities, extra_func=self.extra_func_args['func'], **{k: self.extra_func_args[k] for k in ['extra_prompt', 'path', 'extra_utilities_class']})
+            self.extra_func_args = {
+                'extra_prompt': '',
+                'path': '',
+                'extra_utilities_class': self.utilities,
+                'func': None,
+                'type': ''
+            }
+        else:
+            response = ai_function_execution(user_prompt, tools, available_functions, self.utilities)
         if speech:
             say(speech, response or "Nothing in response")
         else:
             print(self.ascii_colors.color("\nConviva: ", self.ascii_colors.GREEN), end="")
             self.print_response(""+self.ascii_colors.color(response, self.ascii_colors.YELLOW)+"\n")
    
+
+
+    def get_media_file_for_upload(self, file_path):
+
+        file_extension = Path(file_path).suffix.replace('.', '').replace("'", "")
+
+        print("DEBUG: File path entered ->", file_path)
+        print("DEBUG: Extracted extension ->", file_extension)
+        
+        self.extra_func_args = {
+            'extra_prompt': '',
+            'path': file_path,
+            'extra_utilities_class': self.utilities,
+            'func': None,
+            'type': ''
+        }
+        # Assigning the appropriate function for image or audio processing
+        if file_extension in {'png', 'jpeg', 'jpg'}:
+            self.extra_func_args['type'] = 'image'
+            self.extra_func_args['func'] = ai_image_analysis
+        elif file_extension in {'mp3', 'wav'}: 
+            self.extra_func_args['func'] = ai_sound_analysis
+            self.extra_func_args['type'] = 'sound'
+
+        print("DEBUG: Assigned function ->", self.extra_func_args['func'])
+
+        
+    def upload_media(self):
+        file = input("Enter Media for Analysis: ").strip()
+
+        # Remove leading/trailing quotes if present
+        if file.startswith(("'", '"')) and file.endswith(("'", '"')):
+            file = file[1:-1]
+
+        # Check if file exists
+        if not os.path.isfile(file):
+            print("Error: File does not exist. Please enter a valid file path.")
+            return
+        self.get_media_file_for_upload(file)
+
+
+
     def get_or_set_voice(self, action, voice={}):
         filename = "voice.json"
         if action == 'get':
@@ -220,10 +284,14 @@ class CLI(ag.ArgumentParser):
         print(self.conversation_so_far)
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
-            if user_prompt.lower() in ['x', 'exit'] or self.end_convo:
-                break
-            elif user_prompt.lower() == 'c':
+            if user_prompt.lower() == '/exit' or self.end_convo:
+                sys.exit() 
+            elif user_prompt.lower() == '/new':
                 self.new_conversation()
+                continue
+            elif user_prompt.lower() == '/upload':
+                self.upload_media()
+                # print(self.)
                 continue
             elif user_prompt == "":
                 print("--------")
@@ -285,7 +353,7 @@ class CLI(ag.ArgumentParser):
         with open('Conversations/.current_conversation_file_name.txt', 'r') as f:
             self.open_conversation(self.extract_timestamp(f.read()).replace("_", ''))
 
-
+   
     def open_conversation(self, id):
         self.conversation_so_far = ""
         print(id)
@@ -301,7 +369,6 @@ class CLI(ag.ArgumentParser):
                 self.utilities.conversation.conversation_history = json.load(file)
                 self.conversation = self.utilities.conversation.conversation_history
             self.get_conversation_so_far()
-            # print(self.conversation_so_far)
             self.end_convo=False
             self.start_conversation(False,  True)
             print("Starting Convo")
@@ -312,6 +379,18 @@ class CLI(ag.ArgumentParser):
             self.new_conversation()
             self.end_convo=False
             self.start_conversation(False, True)
+
+    def get_convresation_content(self):
+        conversation_to_open = ''
+        with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
+            conversation_to_open = f.read()
+
+        print(conversation_to_open)
+        # Loading the conversation history from the file
+        with open(conversation_to_open, 'r') as file:
+            self.utilities.conversation.conversation_history = json.load(file)
+            self.conversation = self.utilities.conversation.conversation_history
+        self.get_conversation_so_far()
 
     def extract_timestamp(self, file_name):
         """
@@ -502,10 +581,6 @@ class CLI(ag.ArgumentParser):
                         break  # Restart voice selection
 
 
-    def preview_voice(self, id):
-        pass
-        # Preview given voice
-
     def open_gui(self):
         pass    
         # Check if gui exists
@@ -560,9 +635,7 @@ class CLI(ag.ArgumentParser):
         headers = ['No.', 'ID', "File", 'Title']
         print(tabulate(history, headers=headers, stralign="left", numalign="center", tablefmt="pipe"))
 
-    def get_previous_conversation(self):
-        return input('Which conversation would you like to switch to? ')
-
+    
     
 
 if __name__ == '__main__':
