@@ -71,9 +71,10 @@ class CLI(ag.ArgumentParser):
 
         # Managing Conversations
         self.add_argument('-c', '--clear-conversation', action='store_true', help='Delete all stored conversations and reset history.')
-        self.add_argument('-e', '--edit-conversation', type=str, help='Edit a specific conversation by providing its name.')
-        self.add_argument('-d', '--delete-conversation', type=str, help='Delete a specific conversation from history by name.')
-        self.add_argument('-F', '--search-conversation', type=str, help='Search for a conversation by keyword in an interactive mode.')
+        self.add_argument('-e', '--edit-conversation', action='store_true', help='Edit a specific conversation by providing its name.')
+        self.add_argument('-o', '--open-conversation', action='store_true', help='Open a specific conversation by providing its name.')
+        self.add_argument('-d', '--delete-conversation', action='store_true', help='Delete a specific conversation from history by name.')
+        self.add_argument('-F', '--search-conversation', action='store_true', help='Search for a conversation by keyword in an interactive mode.')
         self.add_argument('-i', '--search-conversation-interactive', type=str, help='Search for a conversation by keyword in an interactive mode.')
         self.add_argument('-f', '--search-conversation-tabular', type=str, help='Search for a conversation by keyword and display results in tabular format.')
 
@@ -107,24 +108,29 @@ class CLI(ag.ArgumentParser):
                 print("Creating a new conversation")
                 self.new_conversation()
 
-            elif args.switch_conversation:
-                print("Switching to another conversation")
-                # Would have to find the conversation to open
-                # Would then have to open the conversation
+            
 
 
             elif args.list_conversation:
                 print("List out all conversations")
                 self.list_conversations()
 
+            elif args.open_conversation:
+                print("Open a Conversation")
+                self.open_conversation(self.extract_timestamp(self.select_conversation(action='To Open')).replace("_", ""))
+
             elif args.clear_conversation:
                 print("Clearing All Conversations")
+                self.clear_conversation_history()
                 
             elif args.edit_conversation:
                 print("Editting an individual conversation")
+                self.edit_conversation(self.select_conversation(action='To Edit'))
                    
             elif args.delete_conversation:
                 print("Deleting a single conversation")
+                self.delete_conversation(self.select_conversation(action='To Delete'))
+
                 
             elif args.search_conversation:
                 print("Searching for a conversation.")
@@ -354,16 +360,24 @@ class CLI(ag.ArgumentParser):
                 
 
 
-    def edit_conversation(self, id):
-        pass
-        # Get exact conversation
-        # Edit it's title
-        # Save it back
+    def delete_conversation(self, file_path):
+        if input(f"Are you sure that you want to delete {file_path[45:].replace('.json', "")} (Y/n): ").lower() == 'y':
+            try:
+                os.remove(file_path)
+                print(f"{file_path[45:].replace('.json', "")} has been deleted successfully")
+            except Exception as e:
+                print("Sorry This Error has occured: ", e)
+        
 
-    def delete_conversation(self, id):
-        pass
-        # Get exact conversation
-        # delete it
+    def edit_conversation(self, file_path):
+        if input(f"Are you sure that you want to rename {file_path[45:].replace('.json', "")} (Y/n): ").lower() == 'y':
+            try:
+                old = file_path
+                new = f"Conversations/conviva_20250228_175438_071642_{input("Enter the New Conversation Title")}.json"
+                os.rename(old, new)
+                print(f"{file_path[45:].replace('.json', "")} has been renamed to {new[45:].replace('.json', "")} successfully")
+            except Exception as e:
+                print("Sorry This Error has occured: ", e)
 
     def search_filter_conversations(self):
         pass
@@ -390,26 +404,22 @@ class CLI(ag.ArgumentParser):
         # If it doesn't, ask to download it and thenopen it.
         # Else End
 
-    def select_conversation(self):
+    def select_conversation(self, action=''):
         conversations = self.get_conversations()
-        conversation_titles = [i[45:].replace('.json', "") for i in conversations]
-        # Define a custom style
         custom_style = questionary.Style([
-            ('pointer', 'fg:#00ff00 bold'),  # Change arrow color (green) and make it bold
-            ('highlighted', 'fg:#ffcc00 bold')  # Change highlighted text color (yellow)
+            ('pointer', 'fg:#00ff00 bold'),  
+            ('highlighted', 'fg:#ffcc00 bold')  
         ])
-
+        conversation_map={ i[45:].replace('.json', "") : i for i in conversations if i != 'Conversations/.current_conversation_file_name.txt' }
         print()
-        # Prompt with a custom arrow (pointer)
         choice = questionary.select(
-            "Pick a framework:",
-            choices=conversation_titles,
-            pointer="❯",  # Change the default arrow
-            style=custom_style  # Apply the custom style
+            f"Select a Conversation {action}:",
+            choices=list(conversation_map.keys()),
+            pointer="❯",  
+            style=custom_style  
         ).ask()
-
-        # print(f"You selected: {choice}")
-        return choice
+        print("")
+        return conversation_map.get(choice)
 
 
     def spinner(self):
@@ -444,21 +454,12 @@ class CLI(ag.ArgumentParser):
     def get_previous_conversation(self):
         return input('Which conversation would you like to switch to? ')
 
-    def select_conversation(self):
-        pass
+    
 
 if __name__ == '__main__':
     cli = CLI()
     # cli.new_conversation()
     # cli.open_conversation('20241020152410730023')
-    print(cli.select_conversation())
+    # print(cli.select_conversation())
     # cli.list_conversations()
-
-
-
-
-
-
-
-
 
