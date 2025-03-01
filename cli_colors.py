@@ -117,7 +117,7 @@ class AsciiColors:
 
 
 
-x = AsciiColors()
+# x = AsciiColors()
 
 # print(x.random_color("Hello"))
 # print(x.center_block_text(x.color(title, x.RED)))
