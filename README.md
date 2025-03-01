@@ -1,9 +1,11 @@
----
 # Conviva – CLI AI Assistant
+
+![CLI](cli.png)
 
 Conviva is a command-line AI assistant designed to provide an interactive, conversational experience. Whether you're asking for calculations, system information, media analysis, or simply engaging in a chat, Conviva integrates a variety of tools and utilities to make your interaction seamless.
 
 > **Note:** This version focuses on the CLI interface. A GUI version is in the works but is not part of this branch.
+
 ---
 
 ## Table of Contents
@@ -18,6 +20,7 @@ Conviva is a command-line AI assistant designed to provide an interactive, conve
 - [Installation](#installation)
 - [Usage](#usage)
   - [Command-Line Arguments](#command-line-arguments)
+- [Usage](#usage)
 - [Future Improvements](#future-improvements)
 
 ---
@@ -155,6 +158,65 @@ The following arguments are available for managing conversations and interacting
     _Launch the graphical user interface (GUI) for the application (if implemented)._
 
 When no arguments are provided, Conviva starts a default text-based conversation.
+
+### Interacting with the Application
+
+Once the application is running, you can interact with it through text. Here are some commands and options you can use during your session:
+
+#### Basic Commands:
+
+- **`/exit`**: Exit the application.
+- **`/new`**: Start a new conversation.
+- **`/upload`**: Upload and analyze media files (such as images or audio).
+- **`<your query>`**: Enter any query or message for Conviva to process. This could be a request for system info, media analysis, or general conversation.
+
+#### Example Session:
+
+1. When you first run the application, you'll be presented with the title of your current conversation (or a prompt to start a new one). If you have existing conversations, you'll see a list of them.
+2. Enter a text prompt like `What is the weather today?` or any other question to initiate a conversation. Conviva will respond accordingly.
+
+3. If you want to start a new conversation at any point, simply type `/new`.
+
+4. To exit the application, type `/exit`.
+
+#### Managing Conversations:
+
+You can also manage saved conversations through command-line options:
+
+- **List Conversations**:  
+  Use `-l` or `--list-conversation` to list all stored conversations with their names and timestamps.
+
+  ```bash
+  python CLI.py -l
+  ```
+
+- **Open a Saved Conversation**:  
+  Use `-o` or `--open-conversation` to open and view a saved conversation by providing its name interactively.
+
+  ```bash
+  python CLI.py -o
+  ```
+
+- **Delete a Conversation**:  
+  Use `-d` or `--delete-conversation` to delete a specific conversation by providing its name.
+
+  ```bash
+  python CLI.py -d "Conversation Name"
+  ```
+
+- **Clear All Conversations**:  
+  Use `-c` or `--clear-conversation` to delete all stored conversations and reset the history.
+
+  ```bash
+  python CLI.py -c
+  ```
+
+- **Search for a Conversation**:  
+  Use `-F` or `--search-conversation` to enter interactive mode for searching a conversation. You can also use the `-k` or `--search-key` option to provide a keyword for the search.
+
+  ```bash
+  python CLI.py -F -k "keyword"
+  ```
 
 ---
 
