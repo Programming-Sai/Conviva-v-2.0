@@ -55,7 +55,7 @@ class CLI(ag.ArgumentParser):
 
         self.conversation = []
         self.conversation_so_far = ''
-        self.voice = 'Daniel'
+        self.voice = self.get_or_set_voice('get')
 
         self.add_arguments()
         self.process_args()
@@ -145,6 +145,7 @@ class CLI(ag.ArgumentParser):
             
             elif args.gui:
                 print("Opening GUI")
+
                 
             else:
                 # self.start_conversation(False, True)
@@ -194,7 +195,22 @@ class CLI(ag.ArgumentParser):
             print(self.ascii_colors.color("\nConviva: ", self.ascii_colors.GREEN), end="")
             self.print_response(""+self.ascii_colors.color(response, self.ascii_colors.YELLOW)+"\n")
    
-
+    def get_or_set_voice(self, action, voice={}):
+        filename = "voice.json"
+        if action == 'get':
+            if os.path.exists(filename):
+                try:
+                    with open(filename, "r") as f:
+                        return json.load(f)
+                except json.JSONDecodeError:
+                    print("Warning: Corrupted JSON file. Resetting to default.")
+            else:
+                with open(filename, 'w') as f:
+                    json.dump({'voice': 'Daniel'}, f, indent=4)
+        else:
+            self.voice = voice
+            with open(filename, 'w') as f:
+                json.dump(f, voice, indent=4)
 
     def start_conversation(self, speech, text):
         if not self.get_conversations():
@@ -480,10 +496,10 @@ class CLI(ag.ArgumentParser):
                     elif action == "Select Voice":
                         print(f"You have selected {selected_voice['name']}.")
                         self.voice = selected_voice['name']
+                        self.get_or_set_voice('set', voice={'voice': selected_voice['name']})
                         return selected_voice  
                     elif action == "Go Back":
                         break  # Restart voice selection
-
 
 
     def preview_voice(self, id):
