@@ -1,10 +1,11 @@
-Below is a comprehensive README for the GUI version of Conviva 2.0, structured similarly to the CLI docs:
-
+---
 ---
 
 # Conviva 2.0 – GUI AI Assistant
 
-![GUI](gui.png)
+|                           |                  |
+| ------------------------- | ---------------- |
+| ![Orb Interface](orb.png) | ![GUI](chat.png) |
 
 Conviva 2.0 – GUI AI Assistant is a robust graphical application that leverages AI to provide an interactive, conversational experience. Building upon the powerful CLI version, the GUI version offers a visually rich interface with dynamic media handling, speech synthesis, conversation management, and more.
 
@@ -24,7 +25,6 @@ Conviva 2.0 – GUI AI Assistant is a robust graphical application that leverage
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Future Improvements](#future-improvements)
-- [License](#license)
 
 ---
 
