@@ -108,8 +108,6 @@ class CLI(ag.ArgumentParser):
                 print("Creating a new conversation")
                 self.new_conversation()
 
-            
-
 
             elif args.list_conversation:
                 print("List out all conversations")
@@ -134,6 +132,7 @@ class CLI(ag.ArgumentParser):
                 
             elif args.search_conversation:
                 print("Searching for a conversation.")
+
                    
             elif args.select_voice:
                 print("Selecting all voices")
@@ -373,16 +372,41 @@ class CLI(ag.ArgumentParser):
         if input(f"Are you sure that you want to rename {file_path[45:].replace('.json', "")} (Y/n): ").lower() == 'y':
             try:
                 old = file_path
-                new = f"Conversations/conviva_20250228_175438_071642_{input("Enter the New Conversation Title")}.json"
+                new = f"Conversations/conviva_20250228_175438_071642_{input("Enter the New Conversation Title").replace(" ", "-")}.json"
                 os.rename(old, new)
                 print(f"{file_path[45:].replace('.json', "")} has been renamed to {new[45:].replace('.json', "")} successfully")
             except Exception as e:
                 print("Sorry This Error has occured: ", e)
 
-    def search_filter_conversations(self):
-        pass
-        # Search for a conversation based on title, id (date), content from conversation
-        # Return all results
+    def search_filter_conversations(self, key_word):
+        directory = 'Conversations'
+        matching_files = [os.path.join(directory, f) for f in os.listdir(directory) if key_word.lower() in f.lower() and not f.startswith(".")]
+        if matching_files: return matching_files
+
+        if platform.system() == "Windows":
+            # Using findstr for Windows
+            try:
+                result = subprocess.run(
+                    ["findstr", "/S", "/I", key_word, f"{directory}\\*.json"], 
+                    capture_output=True, text=True
+                )
+                content_matches = {line.split(":")[0] for line in result.stdout.splitlines()}  # Extract filenames only
+            except Exception as e:
+                content_matches = []
+        else:
+            # Using grep for macOS/Linux
+            try:
+                result = subprocess.run(
+                    ["grep", "-ril", key_word, directory], capture_output=True, text=True
+                )
+                content_matches = set(result.stdout.splitlines())  # File names only
+            except Exception as e:
+                content_matches = []
+
+        # Combine results (filenames + content matches)
+        return content_matches
+
+        
 
     def get_voices(self):
         pass    
@@ -462,4 +486,8 @@ if __name__ == '__main__':
     # cli.open_conversation('20241020152410730023')
     # print(cli.select_conversation())
     # cli.list_conversations()
+    # print(cli.search_filter_conversations("Luffy"))
+    # print(cli.search_filter_conversations("2025-02-28".replace("-", "")))
+    # print(cli.search_filter_conversations("p"))
+
 
