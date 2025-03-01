@@ -73,31 +73,32 @@ class CLI(ag.ArgumentParser):
 
 
     def add_arguments(self):
-        self.add_argument('-s', '--speech', action='store_true', help='Start a voice-based AI conversation using speech recognition.')
-        self.add_argument('-t', '--text', action='store_true', help='Start a text-based AI conversation where you type messages.')
-        self.add_argument('-n', '--new-conversation', action='store_true', help='Create a new conversation session, separate from previous ones.')
-        self.add_argument('-a', '--switch-conversation', type=str, help='Switch to a previously saved conversation by providing its name.')
-        self.add_argument('-l', '--list-conversation', action='store_true', help='Display all stored conversations with their names and timestamps.')
-        self.add_argument('-u', '--upload-media', type=str, help='Display all stored conversations with their names and timestamps.')
+        # Conversation Modes
+        self.add_argument('-s', '--speech', action='store_true', help='Start a conversation using voice input and AI-generated speech responses.')
+        self.add_argument('-t', '--text', action='store_true', help='Start a conversation using text input where you type messages.')
 
         # Managing Conversations
-        self.add_argument('-c', '--clear-conversation', action='store_true', help='Delete all stored conversations and reset history.')
-        self.add_argument('-e', '--edit-conversation', action='store_true', help='Edit a specific conversation by providing its name.')
-        self.add_argument('-o', '--open-conversation', action='store_true', help='Open a specific conversation by providing its name.')
-        self.add_argument('-d', '--delete-conversation', action='store_true', help='Delete a specific conversation from history by name.')
-        self.add_argument('-F', '--search-conversation', action='store_true', help='Search for a conversation by keyword in an interactive mode.')
-        self.add_argument('-k', '--search-key', type=str, help='Search for a conversation by keyword in an interactive mode.')
+        self.add_argument('-n', '--new-conversation', action='store_true', help='Start a new conversation session, separate from previous ones.')
+        self.add_argument('-l', '--list-conversation', action='store_true', help='List all stored conversations with their names and timestamps.')
+
+        # Conversation History Management
+        self.add_argument('-c', '--clear-conversation', action='store_true', help='Delete all stored conversations and reset conversation history.')
+        self.add_argument('-e', '--edit-conversation', action='store_true', help='Rename a saved conversation by providing its current name.')
+        self.add_argument('-o', '--open-conversation', action='store_true', help='Open and view a saved conversation by providing its name.')
+        self.add_argument('-d', '--delete-conversation', action='store_true', help='Delete a specific conversation by providing its name.')
+
+        # Conversation Search
+        self.add_argument('-F', '--search-conversation', action='store_true', help='Enter an interactive mode to search for specific conversations.')
+        self.add_argument('-k', '--search-key', type=str, help='Find and display conversations containing a specific keyword.')
 
         # Voice Settings
-        self.add_argument('-v', '--select-voice', type=str, help='Choose a specific voice for AI responses by providing a voice ID or name.')
-        
-        # Calling GUI
-        self.add_argument('--gui', action='store_true', help='Opening GUI')
+        self.add_argument('-v', '--select-voice', type=str, help='Set the AI response voice by providing a voice name or ID.')
+
+        # Open GUI
+        self.add_argument('--gui', action='store_true', help='Launch the graphical user interface (GUI) for the application.')
 
 
 
-
-        # Uploading images and audio files
 
 
         
@@ -149,10 +150,6 @@ class CLI(ag.ArgumentParser):
             elif args.select_voice:
                 print("Selecting all voices")
                 self.select_main_voice()
-
-            elif args.upload_media:
-                self.get_media_file_for_upload(args.upload_media)
-                
             
             elif args.gui:
                 print("Opening GUI")
@@ -160,7 +157,6 @@ class CLI(ag.ArgumentParser):
                 
             else:
                 self.start_conversation(False, True)
-                # print("Would Default to Convo")
             print()
             return
         except Exception as e:
@@ -212,7 +208,7 @@ class CLI(ag.ArgumentParser):
         else:
             response = ai_function_execution(user_prompt, tools, available_functions, self.utilities)
         if speech:
-            say(speech, response or "Nothing in response")
+            say(speech, response or "Nothing in response", voice=self.voice)
         else:
             print(self.ascii_colors.color("\nConviva: ", self.ascii_colors.GREEN), end="")
             self.print_response(""+self.ascii_colors.color(response, self.ascii_colors.YELLOW)+"\n")
@@ -223,8 +219,8 @@ class CLI(ag.ArgumentParser):
 
         file_extension = Path(file_path).suffix.replace('.', '').replace("'", "")
 
-        print("DEBUG: File path entered ->", file_path)
-        print("DEBUG: Extracted extension ->", file_extension)
+        print(": File path entered ->", file_path)
+        print(": Extracted extension ->", file_extension)
         
         self.extra_func_args = {
             'extra_prompt': '',
@@ -241,7 +237,7 @@ class CLI(ag.ArgumentParser):
             self.extra_func_args['func'] = ai_sound_analysis
             self.extra_func_args['type'] = 'sound'
 
-        print("DEBUG: Assigned function ->", self.extra_func_args['func'])
+        # print(": Assigned function ->", self.extra_func_args['func'])
 
         
     def upload_media(self):
