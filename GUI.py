@@ -1936,7 +1936,7 @@ class Pulser(ctk.CTkFrame):
         """
         gif_div_ctk = tk.Label(self, text='', background='black')
         # self._play_gif(gif_div_ctk, self._get_frames(os.path.join(os.getcwd(), 'Images', 'conviva-orb.gif')))
-        self._play_gif(gif_div_ctk, self._get_frames('Images/GIF2.gif'))
+        self._play_gif(gif_div_ctk, self._get_frames('Images/OrbGif.gif'))
         gif_div_ctk.pack(expand=True)
 
     def _get_frames(self, img_path: str) -> list:
