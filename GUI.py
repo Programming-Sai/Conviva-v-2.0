@@ -1866,7 +1866,6 @@ class Pulser(ctk.CTkFrame):
         return self
 
     def voices(self):
-
         # Get the voices from the "say" command
         result = subprocess.run(["say", "-v", "?"], capture_output=True, text=True)
 
@@ -1879,12 +1878,6 @@ class Pulser(ctk.CTkFrame):
                     name, lang = name_and_lang
                     description = parts[1].strip()
                     voices.append({"name": name, "language": lang, "description": description})
-
-        # Save as JSON file
-        # with open("macos_voices.json", "w", encoding="utf-8") as f:
-            # json.dump(voices, f, indent=4, ensure_ascii=False)
-
-        # print("Saved as macos_voices.json")
         return voices
 
     def speech(self, text: str, voice) -> None:

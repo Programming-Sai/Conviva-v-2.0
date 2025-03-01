@@ -55,6 +55,7 @@ class CLI(ag.ArgumentParser):
 
         self.conversation = []
         self.conversation_so_far = ''
+        self.voice = 'Daniel'
 
         self.add_arguments()
         self.process_args()
@@ -80,7 +81,6 @@ class CLI(ag.ArgumentParser):
 
         # Voice Settings
         self.add_argument('-v', '--select-voice', type=str, help='Choose a specific voice for AI responses by providing a voice ID or name.')
-        self.add_argument('-p', '--preview-voice', action='store_true', help='Listen to a short sample of the currently selected AI voice.')
         
         # Calling GUI
         self.add_argument('--gui', action='store_true', help='Opening GUI')
@@ -132,13 +132,16 @@ class CLI(ag.ArgumentParser):
                 
             elif args.search_conversation:
                 print("Searching for a conversation.")
+                if args.key_word:
+                    self.search_filter_conversations(args.key_word)
+                else:
+                    print("Please provide a valid search term for the search?")
 
                    
             elif args.select_voice:
                 print("Selecting all voices")
+                self.select_main_voice()
                 
-            elif args.preview_voice:
-                print("Preview a voice")
             
             elif args.gui:
                 print("Opening GUI")
@@ -409,13 +412,79 @@ class CLI(ag.ArgumentParser):
         
 
     def get_voices(self):
-        pass    
-        # Get all voices and return them
+        # Get the voices from the "say" command
+        result = subprocess.run(["say", "-v", "?"], capture_output=True, text=True)
 
-    def select_main_voice(self, id):
-        pass
-        # get all voices
-        # select and save chosen voice
+        voices = []
+        for line in result.stdout.splitlines():
+            parts = line.split("#")
+            if len(parts) == 2:
+                name_and_lang = parts[0].strip().split(maxsplit=1)
+                if len(name_and_lang) == 2:
+                    name, lang = name_and_lang
+                    description = parts[1].strip()
+                    voices.append({"name": name, "language": lang, "description": description})
+        return voices
+    
+    def paginate_list(self, items, page_size=10):
+        """Splits the list into pages of size page_size."""
+        return [items[i:i + page_size] for i in range(0, len(items), page_size)]
+    
+
+    def select_main_voice(self):
+        voices = self.get_voices()
+        custom_style = questionary.Style([
+            ('pointer', 'fg:#00ff00 bold'),
+            ('highlighted', 'fg:#ffcc00 bold')
+        ])
+
+        page_size = 10
+        pages = self.paginate_list(voices, page_size)
+        current_page = 0
+
+        while True:
+            page = pages[current_page]
+            choices = [questionary.Choice(title=v["name"], value=v) for v in page]
+
+            if current_page > 0:
+                choices.insert(0, "⬆ Previous Page")
+            if current_page < len(pages) - 1:
+                choices.append("⬇ Next Page")
+            choices.append("Exit")
+
+            selected_voice = questionary.select(
+                "Select a Voice:",
+                choices=choices,
+                pointer="❯",
+                style=custom_style
+            ).ask()
+
+            if selected_voice == "⬆ Previous Page":
+                current_page -= 1
+            elif selected_voice == "⬇ Next Page":
+                current_page += 1
+            elif selected_voice == "Exit" or not selected_voice:
+                break
+            else:
+                while True:
+                    action = questionary.select(
+                        f"You selected {selected_voice['name']}. What would you like to do?",
+                        choices=["Preview Voice", "Select Voice", "Go Back"],
+                        pointer="❯",
+                        style=custom_style
+                    ).ask()
+
+                    if action == "Preview Voice":
+                        say(True, selected_voice["description"], voice=selected_voice['name'])  
+                        # break
+                    elif action == "Select Voice":
+                        print(f"You have selected {selected_voice['name']}.")
+                        self.voice = selected_voice['name']
+                        return selected_voice  
+                    elif action == "Go Back":
+                        break  # Restart voice selection
+
+
 
     def preview_voice(self, id):
         pass
@@ -490,4 +559,5 @@ if __name__ == '__main__':
     # print(cli.search_filter_conversations("2025-02-28".replace("-", "")))
     # print(cli.search_filter_conversations("p"))
 
-
+    # cli.select_main_voice()
+    # print(cli.voice)
