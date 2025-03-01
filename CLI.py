@@ -74,8 +74,8 @@ class CLI(ag.ArgumentParser):
 
     def add_arguments(self):
         # Conversation Modes
-        self.add_argument('-s', '--speech', action='store_true', help='Start a conversation using voice input and AI-generated speech responses.')
-        self.add_argument('-t', '--text', action='store_true', help='Start a conversation using text input where you type messages.')
+        # self.add_argument('-s', '--speech', action='store_true', help='Start a conversation using voice input and AI-generated speech responses.')
+        # self.add_argument('-t', '--text', action='store_true', help='Start a conversation using text input where you type messages.')
 
         # Managing Conversations
         self.add_argument('-n', '--new-conversation', action='store_true', help='Start a new conversation session, separate from previous ones.')
@@ -100,20 +100,17 @@ class CLI(ag.ArgumentParser):
 
 
 
-
-        
-
     def process_args(self):
         try:
             print()
             args = self.parse_args()
-            if  args.speech:
-                self.start_conversation(True, False)
+            # if  args.speech:
+            #     self.start_conversation(True, False)
 
-            elif args.text:
-                self.start_conversation(False, True)
+            # elif args.text:
+            #     self.start_conversation(False, True)
             
-            elif args.new_conversation:
+            if args.new_conversation:
                 print("Creating a new conversation")
                 self.new_conversation()
 
@@ -124,7 +121,9 @@ class CLI(ag.ArgumentParser):
 
             elif args.open_conversation:
                 print("Open a Conversation")
-                self.open_conversation(self.extract_timestamp(self.select_conversation(action='To Open')).replace("_", ""))
+                convo = self.select_conversation(action='To Open')
+                self.update_conversation_tracker(convo)
+                self.open_conversation(self.extract_timestamp(convo).replace("_", ""))
 
             elif args.clear_conversation:
                 print("Clearing All Conversations")
@@ -141,10 +140,8 @@ class CLI(ag.ArgumentParser):
                 
             elif args.search_conversation:
                 print("Searching for a conversation.")
-                if args.search_key:
-                    self.search_filter_conversations(args.search_key)
-                else:
-                    print("Please provide a valid search term for the search?")
+                search_term = args.search_key if args.search_key else input("Enter a search term: ")
+                self.search_filter_conversations(search_term)
 
                    
             elif args.select_voice:
@@ -164,27 +161,6 @@ class CLI(ag.ArgumentParser):
 
 
 
-
-    def handle_audio_or_image_analysis(self, function, file_parameter):
-        print("Please Enter Your Prompt Here (Ctrl+D to end): \n\n")
-        prompt = sys.stdin.read()
-
-
-        global stop_spinner_event
-        stop_spinner_event = threading.Event()  # Event to control spinner
-
-        # Start the spinner in a separate thread
-        spinner_thread = threading.Thread(target=self.spinner)
-        spinner_thread.start()
-
-
-        result = function(prompt, file_parameter)
-
-
-        stop_spinner_event.set()  # Stop the spinner
-        spinner_thread.join()  # Wait for the spinner thread to finish
-       
-        print(result)
 
     def get_user_input(self, speech, text):
         if speech:
@@ -281,13 +257,13 @@ class CLI(ag.ArgumentParser):
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
             if user_prompt.lower() == '/exit' or self.end_convo:
-                sys.exit() 
+                print("Exiting application...")
+                os._exit(1)
             elif user_prompt.lower() == '/new':
                 self.new_conversation()
                 continue
             elif user_prompt.lower() == '/upload':
                 self.upload_media()
-                # print(self.)
                 continue
             elif user_prompt == "":
                 print("--------")
@@ -366,15 +342,13 @@ class CLI(ag.ArgumentParser):
                 self.conversation = self.utilities.conversation.conversation_history
             self.get_conversation_so_far()
             self.end_convo=False
-            self.start_conversation(False,  True)
             print("Starting Convo")
-        except:
-            # Resetting conversation data in case of an error
+            return self.start_conversation(False, True)
+        except Exception as e:
+            print(f"Error opening conversation: {e}")
             self.utilities.conversation.conversation_history = []
             self.conversation = self.utilities.conversation.conversation_history
             self.new_conversation()
-            self.end_convo=False
-            self.start_conversation(False, True)
 
     def get_convresation_content(self):
         conversation_to_open = ''
@@ -451,13 +425,17 @@ class CLI(ag.ArgumentParser):
             except Exception as e:
                 print(f"Sonething went Wrong: {e}")
                 
-
+    def update_conversation_tracker(self, new_convo):
+        with open('Conversations/.current_conversation_file_name.txt', 'w') as f:
+            f.write(new_convo)
 
     def delete_conversation(self, file_path):
         if input(f"Are you sure that you want to delete {file_path[45:].replace('.json', "")} (Y/n): ").lower() == 'y':
             try:
                 os.remove(file_path)
                 print(f"{file_path[45:].replace('.json', "")} has been deleted successfully")
+                conversations = self.get_conversations()
+                self.update_conversation_tracker(conversations[0]) #if conversations[0] == file_path else ''
             except Exception as e:
                 print("Sorry This Error has occured: ", e)
         
@@ -466,8 +444,10 @@ class CLI(ag.ArgumentParser):
         if input(f"Are you sure that you want to rename {file_path[45:].replace('.json', "")} (Y/n): ").lower() == 'y':
             try:
                 old = file_path
-                new = f"Conversations/conviva_20250228_175438_071642_{input("Enter the New Conversation Title").replace(" ", "-")}.json"
+                new_title = input("Enter the New Conversation Title: ").replace(" ", "-")
+                new = file_path.replace(file_path[45:].replace('.json', ""), new_title)
                 os.rename(old, new)
+                self.update_conversation_tracker(new)
                 print(f"{file_path[45:].replace('.json', "")} has been renamed to {new[45:].replace('.json', "")} successfully")
             except Exception as e:
                 print("Sorry This Error has occured: ", e)
@@ -601,30 +581,6 @@ class CLI(ag.ArgumentParser):
         print("")
         return conversation_map.get(choice)
 
-
-    def spinner(self):
-        """Spinner animation displayed while waiting."""
-        characters = [
-            '⠻', '⠿', '⠽', '⠻', '⠺', '⠹', '⠸', '⠷', 
-            '⠶', '⠵', '⠴', '⠳', '⠲', '⠱', '⠰', '⠯', 
-            '⠮', '⠭', '⠬', '⠫', '⠪', '⠩', '⠨', '⠧', 
-            '⠦', '⠥', '⠤', '⠣', '⠢', '⠡', '⠠', '⠟', 
-            '⠞', '⠝', '⠜', '⠛', '⠚', '⠙', '⠘', '⠗', 
-            '⠖', '⠕', '⠔', '⠓', '⠒', '⠑', '⠐', '⠏', 
-            '⠎', '⠍', '⠌', '⠋', '⠊', '⠉', '⠈', '⠇', 
-            '⠆', '⠅', '⠄', '⠃', '⠂'
-        ]
-
-        
-        while not stop_spinner_event.is_set():
-            print('\n')
-            for char in characters:
-                if stop_spinner_event.is_set():
-                    print('\n\n')
-                    break
-                sys.stdout.write(f'\r{char}')
-                sys.stdout.flush()
-                time.sleep(0.5) 
 
     def list_conversations(self):
         history = [(idx, self.extract_timestamp(i).replace("_", ""), i, i[45:].replace('.json', "")) for idx, i in enumerate(self.get_conversations()) if i != 'Conversations/.current_conversation_file_name.txt']
