@@ -92,7 +92,7 @@ class CLI(ag.ArgumentParser):
         self.add_argument('-k', '--search-key', type=str, help='Find and display conversations containing a specific keyword.')
 
         # Voice Settings
-        self.add_argument('-v', '--select-voice', type=str, help='Set the AI response voice by providing a voice name or ID.')
+        # self.add_argument('-v', '--select-voice', type=str, help='Set the AI response voice by providing a voice name or ID.')
 
         # Open GUI
         self.add_argument('--gui', action='store_true', help='Launch the graphical user interface (GUI) for the application.')
@@ -141,12 +141,12 @@ class CLI(ag.ArgumentParser):
             elif args.search_conversation:
                 print("Searching for a conversation.")
                 search_term = args.search_key if args.search_key else input("Enter a search term: ")
-                self.search_filter_conversations(search_term)
+                self.select_and_manage_conversation(self.search_filter_conversations(search_term))
 
                    
-            elif args.select_voice:
-                print("Selecting all voices")
-                self.select_main_voice()
+            # elif args.select_voice:
+            #     print("Selecting all voices")
+            #     self.select_main_voice()
             
             elif args.gui:
                 print("Opening GUI")
@@ -154,6 +154,7 @@ class CLI(ag.ArgumentParser):
                 
             else:
                 self.start_conversation(False, True)
+                # print()
             print()
             return
         except Exception as e:
@@ -257,7 +258,7 @@ class CLI(ag.ArgumentParser):
         while True:
             user_prompt = self.get_user_input(speech, text)[0]
             if user_prompt.lower() == '/exit' or self.end_convo:
-                print("Exiting application...")
+                print("\n\nExiting application...")
                 os._exit(1)
             elif user_prompt.lower() == '/new':
                 self.new_conversation()
@@ -328,7 +329,7 @@ class CLI(ag.ArgumentParser):
    
     def open_conversation(self, id):
         self.conversation_so_far = ""
-        print(id)
+        # print(id)
         try:
             conversations = self.get_conversations()
             conversation_to_open = [i for i in conversations if id == self.extract_timestamp(i).replace("_", "")][0]
@@ -354,8 +355,6 @@ class CLI(ag.ArgumentParser):
         conversation_to_open = ''
         with open("Conversations/.current_conversation_file_name.txt", 'r') as f:
             conversation_to_open = f.read()
-
-        print(conversation_to_open)
         # Loading the conversation history from the file
         with open(conversation_to_open, 'r') as file:
             self.utilities.conversation.conversation_history = json.load(file)
@@ -480,6 +479,54 @@ class CLI(ag.ArgumentParser):
         # Combine results (filenames + content matches)
         return content_matches
 
+
+    def select_and_manage_conversation(self, conversations):
+        if not conversations:
+            print("No matching conversations found.")
+            return
+
+        custom_style = questionary.Style([
+            ('pointer', 'fg:#00ff00 bold'),
+            ('highlighted', 'fg:#ffcc00 bold')
+        ])
+
+        while True:
+            choices = [questionary.Choice(title=c[45:].replace('.json', ""), value=c) for c in conversations]
+            choices.append("Exit")
+
+            selected_convo = questionary.select(
+                "Select a conversation:",
+                choices=choices,
+                pointer="❯",
+                style=custom_style
+            ).ask()
+
+            if selected_convo == "Exit" or not selected_convo:
+                break
+
+            while True:
+                action = questionary.select(
+                    f"You selected {selected_convo[45:].replace('.json', "")}. What would you like to do?",
+                    choices=["Open", "Edit", "Delete", "Go Back"],
+                    pointer="❯",
+                    style=custom_style
+                ).ask()
+
+                if action == "Open":
+                    # print("OPENING: \t", selected_convo)
+                    self.update_conversation_tracker(selected_convo)
+                    # print("FROM: \t", self.get_current_file())
+                    self.open_conversation(self.extract_timestamp(selected_convo).replace("_", ""))
+                    return  
+                elif action == "Edit":
+                    self.edit_conversation(selected_convo)
+                    return  
+                elif action == "Delete":
+                    self.delete_conversation(selected_convo)
+                    return  
+                elif action == "Go Back":
+                    break
+
         
 
     def get_voices(self):
@@ -556,6 +603,9 @@ class CLI(ag.ArgumentParser):
                     elif action == "Go Back":
                         break  # Restart voice selection
 
+    def get_current_file(self):
+        with open('Conversations/.current_conversation_file_name.txt', 'r') as f:
+            return f.read()
 
     def open_gui(self):
         pass    
